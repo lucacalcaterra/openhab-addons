@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
 
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
+import software.amazon.awssdk.awscore.defaultsmode.DefaultsMode;
 import software.amazon.awssdk.core.async.SdkPublisher;
 import software.amazon.awssdk.core.client.config.ClientAsyncConfiguration;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
@@ -105,7 +106,7 @@ public class DynamoDBPersistenceService implements QueryablePersistenceService {
     private ItemRegistry itemRegistry;
     private @Nullable DynamoDbEnhancedAsyncClient client;
     private @Nullable DynamoDbAsyncClient lowLevelClient;
-    private final static Logger logger = LoggerFactory.getLogger(DynamoDBPersistenceService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DynamoDBPersistenceService.class);
     private boolean isProperlyConfigured;
     private @Nullable DynamoDBConfig dbConfig;
     private @Nullable DynamoDBTableNameResolver tableNameResolver;
@@ -125,7 +126,7 @@ public class DynamoDBPersistenceService implements QueryablePersistenceService {
         DynamoDBConfig localDbConfig = dbConfig;
         config.apiCallAttemptTimeout(TIMEOUT_API_CALL_ATTEMPT).apiCallTimeout(TIMEOUT_API_CALL);
         if (localDbConfig != null) {
-            config.retryPolicy(localDbConfig.getRetryPolicy());
+            localDbConfig.getRetryPolicy().ifPresent(config::retryPolicy);
         }
     }
 
@@ -220,6 +221,7 @@ public class DynamoDBPersistenceService implements QueryablePersistenceService {
                         return true;
                     }
                     DynamoDbAsyncClientBuilder lowlevelClientBuilder = DynamoDbAsyncClient.builder()
+                            .defaultsMode(DefaultsMode.STANDARD)
                             .credentialsProvider(StaticCredentialsProvider.create(localDbConfig.getCredentials()))
                             .httpClient(NettyNioAsyncHttpClient.builder().maxConcurrency(MAX_CONCURRENCY).build())
                             .asyncConfiguration(

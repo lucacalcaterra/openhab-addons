@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
@@ -92,7 +93,7 @@ public class BaseIntegrationTest extends JavaTest {
     protected static final Unit<Dimensionless> DIMENSIONLESS_ITEM_UNIT = Units.ONE;
     private static @Nullable URI endpointOverride;
 
-    protected static UnitProvider UNIT_PROVIDER;
+    protected static final UnitProvider UNIT_PROVIDER;
     static {
         ComponentContext context = Mockito.mock(ComponentContext.class);
         BundleContext bundleContext = Mockito.mock(BundleContext.class);
@@ -191,7 +192,7 @@ public class BaseIntegrationTest extends JavaTest {
      * @param tablePrefix
      * @return new persistence service
      */
-    protected synchronized static DynamoDBPersistenceService newService(@Nullable Boolean legacy, boolean cleanLocal,
+    protected static synchronized DynamoDBPersistenceService newService(@Nullable Boolean legacy, boolean cleanLocal,
             @Nullable URI overrideLocalURI, @Nullable String table, @Nullable String tablePrefix) {
         final DynamoDBPersistenceService service;
         Map<String, Object> config = getConfig(legacy, table, tablePrefix);
@@ -428,25 +429,10 @@ public class BaseIntegrationTest extends JavaTest {
 
                 lowLevelClient.deleteTable(req -> req.tableName(table)).get();
                 final WaiterResponse<DescribeTableResponse> waiterResponse;
-                try {
-                    waiterResponse = lowLevelClient.waiter().waitUntilTableNotExists(req -> req.tableName(table)).get();
-                } catch (ExecutionException e) {
-                    // the waiting might fail with SdkClientException: An exception was thrown and did not match any
-                    // waiter acceptors
-                    // (the exception being CompletionException of ResourceNotFound)
-
-                    // We check if table has been removed, and continue if it has
-                    try {
-                        lowLevelClient.describeTable(req -> req.tableName(table)).get();
-                    } catch (ExecutionException e2) {
-                        if (e2.getCause() instanceof ResourceNotFoundException) {
-                            // Table does not exist, this table does not need cleaning, continue to next table
-                            continue;
-                        }
-                    }
-                    throw e;
-                }
-                assertTrue(waiterResponse.matched().exception().isEmpty());
+                waiterResponse = lowLevelClient.waiter().waitUntilTableNotExists(req -> req.tableName(table)).get();
+                Optional<Throwable> waiterException = waiterResponse.matched().exception()
+                        .filter(e -> !(e instanceof ResourceNotFoundException));
+                assertTrue(waiterException.isEmpty(), waiterException::toString);
             } catch (ExecutionException | InterruptedException e) {
                 fail("Error cleaning up test (deleting table)", e);
             }

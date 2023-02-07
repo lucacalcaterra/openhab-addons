@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 import org.openhab.binding.digitalstrom.internal.DigitalSTROMBindingConstants;
@@ -110,7 +111,7 @@ public class DeviceImpl extends AbstractGeneralDeviceInformations implements Dev
 
     /*
      * Saves the refresh priorities and reading initialized flag of power sensors as
-     * an matrix. The first array fields are 0 = active power, 1 = output current, 2
+     * a matrix. The first array fields are 0 = active power, 1 = output current, 2
      * = electric meter, 3 = power consumption and in each field is a string array
      * with the fields 0 = refresh priority 1 = reading initial flag (true = reading
      * is initialized, otherwise false)
@@ -278,9 +279,7 @@ public class DeviceImpl extends AbstractGeneralDeviceInformations implements Dev
      */
     private boolean addGroupToList(Short groupID) {
         ApplicationGroup group = ApplicationGroup.getGroup(groupID);
-        if (ApplicationGroup.UNDEFINED.equals(group)) {
-            logger.warn("Unknown application group with ID '{}' found! Ignoring group", groupID);
-        } else {
+        if (!ApplicationGroup.UNDEFINED.equals(group)) {
             if (!this.groupList.contains(group)) {
                 this.groupList.add(group);
             }
@@ -407,7 +406,8 @@ public class DeviceImpl extends AbstractGeneralDeviceInformations implements Dev
 
     @Override
     public synchronized ApplicationGroup getFunctionalColorGroup() {
-        return groupList.stream().findFirst().get();
+        Optional<ApplicationGroup> applicationGroup = groupList.stream().findFirst();
+        return applicationGroup.isPresent() ? applicationGroup.get() : null;
     }
 
     @Override
@@ -1679,7 +1679,7 @@ public class DeviceImpl extends AbstractGeneralDeviceInformations implements Dev
     }
 
     /**
-     * if an {@link DeviceStatusListener} is registered inform him about the new
+     * if a {@link DeviceStatusListener} is registered inform him about the new
      * state otherwise do nothing.
      *
      * @param deviceStateUpdate

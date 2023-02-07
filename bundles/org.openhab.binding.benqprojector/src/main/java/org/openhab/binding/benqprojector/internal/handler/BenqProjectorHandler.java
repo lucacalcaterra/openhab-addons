@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -159,7 +159,7 @@ public class BenqProjectorHandler extends BaseThingHandler {
                 }
             }
         } catch (IllegalArgumentException e) {
-            logger.warn("Unknown channel {}", channel.getUID().getId());
+            logger.warn("Unknown channel {}, exception: {}", channel.getUID().getId(), e.getMessage());
         }
     }
 
@@ -279,13 +279,14 @@ public class BenqProjectorHandler extends BaseThingHandler {
     }
 
     private void closeConnection() {
-        BenqProjectorDevice remoteController = device.get();
-        try {
-            logger.debug("Closing connection to device '{}'", this.thing.getUID());
-            remoteController.disconnect();
-            updateStatus(ThingStatus.OFFLINE);
-        } catch (BenqProjectorException e) {
-            logger.debug("Error occurred when closing connection to device '{}'", this.thing.getUID(), e);
+        if (device.isPresent()) {
+            try {
+                logger.debug("Closing connection to device '{}'", this.thing.getUID());
+                device.get().disconnect();
+                updateStatus(ThingStatus.OFFLINE);
+            } catch (BenqProjectorException e) {
+                logger.debug("Error occurred when closing connection to device '{}'", this.thing.getUID(), e);
+            }
         }
     }
 }

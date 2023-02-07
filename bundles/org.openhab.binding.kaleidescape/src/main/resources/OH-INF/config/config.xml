@@ -18,6 +18,7 @@
 		</parameter>
 		<parameter name="serialPort" type="text" required="false">
 			<context>serial-port</context>
+			<limitToOptions>false</limitToOptions>
 			<label>Serial Port</label>
 			<description>(Optional) Serial Port to use for connecting directly to an individual Kaleidescape component.</description>
 			<advanced>true</advanced>
@@ -41,6 +42,18 @@
 			<label>Initial Volume Setting</label>
 			<description>When the binding starts up, set the Inital Volume level to this value (Default 25).</description>
 			<default>25</default>
+		</parameter>
+		<parameter name="loadHighlightedDetails" type="boolean" required="false">
+			<label>Load Highlighted Details</label>
+			<description>When enabled the binding will automatically load the metadata channels when the selected item in the UI
+				(Movie or Album) changes.</description>
+			<default>false</default>
+		</parameter>
+		<parameter name="loadAlbumDetails" type="boolean" required="false">
+			<label>Load Album Details</label>
+			<description>When enabled the binding will automatically load the metadata channels for the currently playing Album.
+				Not applicable for Alto and Strato components.</description>
+			<default>false</default>
 		</parameter>
 	</config-description>
 </config-description:config-descriptions>

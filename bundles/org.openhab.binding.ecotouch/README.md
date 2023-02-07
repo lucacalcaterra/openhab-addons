@@ -64,7 +64,7 @@ Advanced channels:
 | Channel ID                       | Type                 | Read-Only | Description                                                             |
 |----------------------------------|----------------------|-----------|-------------------------------------------------------------------------|
 | compressor_power                 | Number:Dimensionless | yes       | Percent Power Compressor                                                |
-| coolEnableTemp                   | Number:Temperature   | yes       | Temperature Cooling Enable                                              |
+| coolEnableTemp                   | Number:Temperature   | no        | Temperature Cooling Enable                                              |
 | date_day                         | Number:Dimensionless | yes       | Day                                                                     |
 | date_month                       | Number:Dimensionless | yes       | Month                                                                   |
 | date_year                        | Number:Dimensionless | yes       | Year                                                                    |
@@ -85,7 +85,7 @@ Advanced channels:
 | maxVLTemp                        | Number:Temperature   | yes       | maxVLTemp                                                               |
 | nviHeizkreisNorm                 | Number:Temperature   | no        | nviHeizkreisNorm                                                        |
 | nviNormAussen                    | Number:Temperature   | no        | nviNormAussen                                                           |
-| nviSollKuehlen                   | Number:Temperature   | yes       | nviSollKuehlen                                                          |
+| nviSollKuehlen                   | Number:Temperature   | no        | nviSollKuehlen                                                          |
 | nviTHeizgrenze                   | Number:Temperature   | no        | nviTHeizgrenze                                                          |
 | nviTHeizgrenzeSoll               | Number:Temperature   | no        | nviTHeizgrenze Setpoint                                                 |
 | operating_hours_circulation_pump | Number:Time          | yes       | Operating Hours Circulation Pump                                        |
@@ -162,13 +162,13 @@ The air heatpump has the following additional channels:
 
 ### ecotouch.things
 
-```
+```java
 Thing ecotouch:geo:heatpump "Waterkotte Heatpump" @ "basement" [ ip="192.168.1.100", username="admin", password="wtkadmin", refresh=120 ]
 ```
 
 ### ecotouch.items
 
-```
+```java
 Number:Temperature HeatPump_Temp_Aussen     { channel="ecotouch:geo:heatpump:temperature_outside" }
 Number:Temperature HeatPump_Temp_Aussen_1d  { channel="ecotouch:geo:heatpump:temperature_outside_24h" }
 Number:Temperature HeatPump_Temp_Quelle_in  { channel="ecotouch:geo:heatpump:temperature_source_in" }
@@ -179,11 +179,12 @@ Number:Power HeatPump_power_el              { channel="ecotouch:geo:heatpump:pow
 Number:Power HeatPump_power_th              { channel="ecotouch:geo:heatpump:power_heating" }
 Number HeatPump_COP_heating                 { channel="ecotouch:geo:heatpump:cop_heating" }
 Number:Temperature HeatPump_adaptHeating    { channel="ecotouch:geo:heatpump:adapt_heating" }
+Switch HeatPump_state_sourcepump            { channel="ecotouch:geo:heatpump:state_sourcepump" }
 ```
 
 ### ecotouch.sitemap
 
-```
+```perl
 sitemap ecotouch label="Waterkotte EcoTouch"
 {
     Text item=HeatPump_Temp_Aussen
@@ -197,4 +198,22 @@ sitemap ecotouch label="Waterkotte EcoTouch"
     Text item=HeatPump_COP_heating
     Setpoint item=HeatPump_adaptHeating minValue=-2.0 maxValue=2.0 step=0.5
 }
+```
+
+A snippet to show the current state of the heatpump (you need to have the corresponding items in your .items-file):
+
+```java
+    Text label="State" icon="settings" {
+        Text item=HeatPump_state_sourcepump   label="State Source Pump [%s]"      valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_heatingpump  label="State Heating Pump [%s]"     valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_evd          label="State EVD [%s]"              valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_compressor1  label="State Compressor 1 [%s]"     valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_extheater    label="State External Heater [%s]"  valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_alarm        label="State Alarm [%s]"            valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_cooling      label="State Cooling [%s]"          valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_water        label="State Water [%s]"            valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_pool         label="State Pool [%s]"             valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_solar        label="State Solar [%s]"            valuecolor=[==ON="green", ==OFF="red"]
+        Text item=HeatPump_state_cooling4way  label="State Cooling4Way [%s]"      valuecolor=[==ON="green", ==OFF="red"]
+    }
 ```

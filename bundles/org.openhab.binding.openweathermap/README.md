@@ -1,9 +1,3 @@
----
-layout: documentation
----
-
-{% include base.html %}
-
 # OpenWeatherMap Binding
 
 This binding integrates the [OpenWeatherMap weather API](https://openweathermap.org/api).
@@ -45,6 +39,12 @@ It requires coordinates of the location of your interest.
 Air pollution forecast is available for 5 days with hourly granularity.
 You can add as much `air-pollution` things for different locations to your setup as you like to observe.
 
+#### One Call API Version
+
+New Subscribers to the One Call API will require setting the API version to 3.0 (The API key will not work with 2.5). Existing subscribers can continue to use their existing API key with version 2.5.
+
+ One Call API Version 3.0 [requires payment details](https://openweathermap.org/price) for future forecast information. However, it is possible to set a [daily API call limit to 1000](https://openweathermap.org/faq#onecall), which will avoid charges.
+
 ### One Call API Weather and Forecast
 
 The thing `onecall` supports the [current and forecast weather data](https://openweathermap.org/api/one-call-api#how) for a specific location using the One Call API.
@@ -70,7 +70,7 @@ Once the system location will be changed, the background discovery updates the c
 | Parameter       | Description                                                                                                                                                                                                                                                                       |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | apikey          | API key to access the OpenWeatherMap API. **Mandatory**                                                                                                                                                                                                                           |
-| refreshInterval | Specifies the refresh interval (in minutes). Optional, the default value is 60, the minimum value is 10.                                                                                                                                                                          |
+| refreshInterval | Specifies the refresh interval (in minutes). Optional, the default value is 60, the minimum value is 1.                                                                                                                                                                          |
 | language        | Language to be used by the OpenWeatherMap API. Optional, valid values are: `ar`, `bg`, `ca`, `de`, `el`, `en`, `es`, `fa`, `fi`, `fr`, `gl`, `hr`, `hu`, `it`, `ja`, `kr`, `la`, `lt`, `mk`,  `nl`, `pl`, `pt`, `ro`, `ru`, `se`, `sk`, `sl`, `tr`, `ua`, `vi`, `zh_cn`, `zh_tw`. |
 
 ### Current Weather And Forecast

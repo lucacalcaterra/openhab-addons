@@ -2,26 +2,32 @@
 
 This binding gives the possibility to integrate any Heatpump that is based on the Luxtronik 2 contol unit of Alpha Innotec. This includes heatpumps of:
 
-* Alpha InnoTec
-* Buderus (Logamatic HMC20, HMC20 Z)
-* CTA All-In-One (Aeroplus)
-* Elco
-* Nibe (AP-AW10)
-* Roth (ThermoAura®, ThermoTerra)
-* (Siemens) Novelan (WPR NET)
-* Wolf Heiztechnik (BWL/BWS)
+- Alpha InnoTec
+- Buderus (Logamatic HMC20, HMC20 Z)
+- CTA All-In-One (Aeroplus)
+- Elco
+- Nibe (AP-AW10)
+- Roth (ThermoAura®, ThermoTerra)
+- (Siemens) Novelan (WPR NET)
+- Wolf Heiztechnik (BWL/BWS)
 
 This binding was tested with:
 
-* Siemens Novelan LD 7
+- Siemens Novelan LD 7
 
-_If you have another heatpump the binding works with, let us know, so we can extend the list_
+:::tip Note
+If you have another heatpump the binding works with, let us know, so we can extend the list
+:::
 
 Note: The whole functionality is based on data that was reverse engineered, so use it at your own risk.
 
 ## Supported Things
 
 This binding only supports one thing type "Luxtronik Heatpump" (heatpump).
+
+## Discovery
+
+This binding will try to detect heat pumps that are reachable in the same IPv4 subnet.
 
 ## Thing Configuration
 
@@ -247,6 +253,37 @@ The following channels are holding read only values:
 | temperatureRoomTarget | Number:Temperature | x | Room temperature set point |
 | temperatureHotWaterTop | Number:Temperature | x | Temperature domestic water top |
 | frequencyCompressor | Number:Frequency | x | Compressor frequency |
+| channel232 | Number | x | Channel 232 |
+| channel233 | Number | x | Channel 233 |
+| channel234 | Number | x | Channel 234 |
+| channel235 | Number | x | Channel 235 |
+| frequencyCompressorTarget | Number:Frequency | x | Compressor Target Frequency |
+| channel237 | Number | x | Channel 237 |
+| channel238 | Number | x | Channel 238 |
+| channel239 | Number | x | Channel 239 |
+| channel240 | Number | x | Channel 240 |
+| channel241 | Number | x | Channel 241 |
+| channel242 | Number | x | Channel 242 |
+| channel243 | Number | x | Channel 243 |
+| channel244 | Number | x | Channel 244 |
+| channel245 | Number | x | Channel 245 |
+| channel246 | Number | x | Channel 246 |
+| channel247 | Number | x | Channel 247 |
+| channel248 | Number | x | Channel 248 |
+| channel249 | Number | x | Channel 249 |
+| channel250 | Number | x | Channel 250 |
+| channel251 | Number | x | Channel 251 |
+| channel252 | Number | x | Channel 252 |
+| channel253 | Number | x | Channel 253 |
+| flowRateHeatSource2 | Number:VolumetricFlowRate | x | Flow Rate Heat Source |
+| channel255 | Number | x | Channel 255 |
+| channel256 | Number | x | Channel 256 |
+| heatingPowerActualValue | Number:Power | x | Heating Power Actual Value |
+| channel258 | Number | x | Channel 258 |
+| channel259 | Number | x | Channel 259 |
+| channel260 | Number | x | Channel 260 |
+
+The usage of the numbered channels above is currently unknown. If you are able to directly match one of the values to any value reported by your heat pump, feel free to report back on the forum, so we are able to give the channel a proper name instead.
 
 The following channels are also writable:
 | channel  | type   | advanced | description                  |
@@ -266,9 +303,9 @@ The following channels are also writable:
 | comfortCoolingMode | Number |   | Comfort cooling mode |
 | temperatureComfortCoolingATRelease | Number:Temperature |   | Comfort cooling AT release |
 | temperatureComfortCoolingATReleaseTarget | Number:Temperature |   | Comfort cooling AT release target |
+| temperatureHeatingLimit | Number:Temperature |   | Temperature Heating Limit |
 | comfortCoolingATExcess | Number:Time |   | AT Excess |
 | comfortCoolingATUndercut | Number:Time |   | AT undercut |
-
 
 ## Example
 
@@ -276,7 +313,7 @@ Below you can find some example textual configuration for a heatpump with some b
 
 _heatpump.things:_
 
-```
+```java
 Thing luxtronikheatpump:heatpump:heatpump "Heatpump" [
     ipAddress="192.168.178.12",
     port="8889",
@@ -286,7 +323,7 @@ Thing luxtronikheatpump:heatpump:heatpump "Heatpump" [
 
 _heatpump.items:_
 
-```
+```java
 Group    gHeatpump   "Heatpump"   <temperature>
 
 Number:Temperature HeatPump_Temp_Outside   "Temperature outside [%.1f °C]"   <temperature> (gHeatpump) { channel="luxtronikheatpump:heatpump:heatpump:temperatureOutside" }
@@ -306,7 +343,7 @@ Number HeatPump_warmwater_temperature   "Hot water temperature [%.1f]"  (gHeatpu
 
 _heatpump.sitemap:_
 
-```
+```perl
 sitemap heatpump label="Heatpump" {
     Frame label="Heatpump" {
         Text item=HeatPump_State_Ext
@@ -330,4 +367,4 @@ This binding was initially based on the [Novelan/Luxtronik Heat Pump Binding](ht
 Luxtronik control units have an internal webserver which serves a Java applet. This applet can be used to configure some parts of the heat pump. The applet itselves uses a socket connection to fetch and send data to the heatpump.
 This socket is also used by this binding. To get some more information on how this socket works you can check out other Luxtronik tools like [Luxtronik2 for NodeJS](https://github.com/coolchip/luxtronik2).
 
-A detailed parameter descriptions for the Java Webinterface can be found in the [Loxwiki](https://www.loxwiki.eu/display/LOX/Java+Webinterface)
+A detailed parameter descriptions for the Java Webinterface can be found in the [Loxwiki](https://loxwiki.atlassian.net/wiki/spaces/LOX/pages/1533935933/Java+Webinterface)

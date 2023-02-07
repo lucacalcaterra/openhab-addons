@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -13,8 +13,6 @@
 package org.openhab.binding.pulseaudio.internal;
 
 import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
@@ -22,6 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.pulseaudio.internal.discovery.PulseaudioDeviceDiscoveryService;
 import org.openhab.binding.pulseaudio.internal.handler.PulseaudioBridgeHandler;
 import org.openhab.binding.pulseaudio.internal.handler.PulseaudioHandler;
@@ -36,7 +36,9 @@ import org.openhab.core.thing.binding.ThingHandler;
 import org.openhab.core.thing.binding.ThingHandlerFactory;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Modified;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +49,7 @@ import org.slf4j.LoggerFactory;
  * @author Tobias Bräutigam - Initial contribution
  */
 @Component(service = ThingHandlerFactory.class, configurationPid = "binding.pulseaudio")
+@NonNullByDefault
 public class PulseaudioHandlerFactory extends BaseThingHandlerFactory {
     private final Logger logger = LoggerFactory.getLogger(PulseaudioHandlerFactory.class);
 
@@ -56,14 +59,16 @@ public class PulseaudioHandlerFactory extends BaseThingHandlerFactory {
 
     private final Map<ThingHandler, ServiceRegistration<?>> discoveryServiceReg = new HashMap<>();
 
+    private PulseAudioBindingConfiguration configuration = new PulseAudioBindingConfiguration();
+
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
     @Override
-    public Thing createThing(ThingTypeUID thingTypeUID, Configuration configuration, ThingUID thingUID,
-            ThingUID bridgeUID) {
+    public @Nullable Thing createThing(ThingTypeUID thingTypeUID, Configuration configuration,
+            @Nullable ThingUID thingUID, @Nullable ThingUID bridgeUID) {
         if (PulseaudioBridgeHandler.SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID)) {
             return super.createThing(thingTypeUID, configuration, thingUID, null);
         }
@@ -81,11 +86,11 @@ public class PulseaudioHandlerFactory extends BaseThingHandlerFactory {
                 bundleContext.registerService(DiscoveryService.class.getName(), discoveryService, new Hashtable<>()));
     }
 
-    private ThingUID getPulseaudioDeviceUID(ThingTypeUID thingTypeUID, ThingUID thingUID, Configuration configuration,
-            ThingUID bridgeUID) {
+    private ThingUID getPulseaudioDeviceUID(ThingTypeUID thingTypeUID, @Nullable ThingUID thingUID,
+            Configuration configuration, @Nullable ThingUID bridgeUID) {
         if (thingUID == null) {
-            String name = (String) configuration.get(PulseaudioBindingConstants.DEVICE_PARAMETER_NAME);
-            return new ThingUID(thingTypeUID, name, bridgeUID.getId());
+            String name = (String) configuration.get(PulseaudioBindingConstants.DEVICE_PARAMETER_NAME_OR_DESCRIPTION);
+            return new ThingUID(thingTypeUID, name, bridgeUID == null ? null : bridgeUID.getId());
         }
         return thingUID;
     }
@@ -96,7 +101,9 @@ public class PulseaudioHandlerFactory extends BaseThingHandlerFactory {
         if (serviceRegistration != null) {
             PulseaudioDeviceDiscoveryService service = (PulseaudioDeviceDiscoveryService) bundleContext
                     .getService(serviceRegistration.getReference());
-            service.deactivate();
+            if (service != null) {
+                service.deactivate();
+            }
             serviceRegistration.unregister();
         }
         discoveryServiceReg.remove(thingHandler);
@@ -104,12 +111,11 @@ public class PulseaudioHandlerFactory extends BaseThingHandlerFactory {
     }
 
     @Override
-    protected ThingHandler createHandler(Thing thing) {
-
+    protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
         if (PulseaudioBridgeHandler.SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID)) {
-            PulseaudioBridgeHandler handler = new PulseaudioBridgeHandler((Bridge) thing);
+            PulseaudioBridgeHandler handler = new PulseaudioBridgeHandler((Bridge) thing, configuration);
             registerDeviceDiscoveryService(handler);
             return handler;
         } else if (PulseaudioHandler.SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID)) {
@@ -119,25 +125,16 @@ public class PulseaudioHandlerFactory extends BaseThingHandlerFactory {
         return null;
     }
 
-    @Override
-    protected synchronized void activate(ComponentContext componentContext) {
+    // The activate component call is used to access the bindings configuration
+    @Activate
+    protected synchronized void activate(ComponentContext componentContext, Map<String, Object> config) {
         super.activate(componentContext);
-        modified(componentContext);
+        modified(config);
     }
 
-    protected synchronized void modified(ComponentContext componentContext) {
-        Dictionary<String, ?> properties = componentContext.getProperties();
-        logger.info("pulseaudio configuration update received ({})", properties);
-        if (properties == null) {
-            return;
-        }
-        Enumeration<String> e = properties.keys();
-        while (e.hasMoreElements()) {
-            String k = e.nextElement();
-            if (PulseaudioBindingConstants.TYPE_FILTERS.containsKey(k)) {
-                PulseaudioBindingConstants.TYPE_FILTERS.put(k, (boolean) properties.get(k));
-            }
-            logger.debug("update received {}: {}", k, properties.get(k));
-        }
+    @Modified
+    protected void modified(Map<String, Object> config) {
+        configuration.update(new Configuration(config).as(PulseAudioBindingConfiguration.class));
+        logger.debug("pulseaudio configuration update received ({})", config);
     }
 }

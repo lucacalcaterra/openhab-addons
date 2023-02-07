@@ -16,36 +16,39 @@ All supported Onkyo devices are registered as an audio sink in the framework.
 This binding can discover the supported Onkyo AV receivers.
 At the moment only the following models are supported:
 
--   HT-RC560
--   TX-NR414
--   TX-NR474
--   TX-NR509
--   TX-NR515
--   TX-NR525
--   TX-NR535
--   TX-NR545
--   TX-NR555
--   TX-NR575
--   TX-NR575E
--   TX-NR616
--   TX-NR626
--   TX-NR636
--   TX-NR646
--   TX-NR656
--   TX-NR676
--   TX-NR686
--   TX-NR708
--   TX-NR717
--   TX-NR727
--   TX-NR737
--   TX-NR747
--   TX-NR757
--   TX-NR809
--   TX-NR818
--   TX-NR828
--   TX-NR838
--   TX-NR3007
--   TX-RZ900
+- HT-RC440
+- HT-RC560
+- TX-NR414
+- TX-NR474
+- TX-NR509
+- TX-NR515
+- TX-NR525
+- TX-NR535
+- TX-NR545
+- TX-NR555
+- TX-NR575
+- TX-NR575E
+    TX-NR609
+- TX-NR616
+- TX-NR626
+- TX-NR636
+- TX-NR646
+- TX-NR656
+- TX-NR676
+- TX-NR686
+- TX-NR708
+- TX-NR717
+- TX-NR727
+- TX-NR737
+- TX-NR747
+- TX-NR757
+- TX-NR807
+- TX-NR809
+- TX-NR818
+- TX-NR828
+- TX-NR838
+- TX-NR3007
+- TX-RZ900
 
 ## Binding Configuration
 
@@ -150,7 +153,7 @@ The Onkyo AVR supports the following channels (some channels are model specific)
 | player#artist             | String    | Artist name of the current song (available if playing from Network or USB)                                      |
 | player#currentPlayingTime | String    | Current playing time of the current song (available if playing from Network or USB)                             |
 | player#listenmode         | Number    | Current listening mode e.g. Stereo, 5.1ch Surround, ...                                                         |
-| player#audioinfo          | String    | Current audio info (Refresh timer must be configured for updates)                                                     |     
+| player#audioinfo          | String    | Current audio info (Refresh timer must be configured for updates)                                               |
 | player#playuri            | String    | Plays the URI provided to the channel                                                                           |
 | player#albumArt           | Image     | Image of the current album art of the current song                                                              |
 | player#albumArtUrl        | String    | URL to the current album art of the current song                                                                |
@@ -167,6 +170,10 @@ The Onkyo AVR supports the following channels (some channels are model specific)
 | netmenu#item7             | String    | The text of USB/Net Menu entry 7                                                                                |
 | netmenu#item8             | String    | The text of USB/Net Menu entry 8                                                                                |
 | netmenu#item9             | String    | The text of USB/Net Menu entry 9                                                                                |
+| information#audioIn       | String    | Details of the input audio format                                                                               |
+| information#audioOut      | String    | Details of the output audio format                                                                              |
+| information#videoIn       | String    | Details of the input video format                                                                               |
+| information#videoOut      | String    | Details of the output video format                                                                              |
 
 ## Rule Actions
 
@@ -174,14 +181,14 @@ This binding includes a rule action which allows to send raw eISCP messages to t
 The rule action can be used to send commands to the receiver that are not supported by channels.
 There is a separate instance for each receiver, which can be retrieved through
 
-```
+```java
 val onkyoActions = getActions("onkyo","onkyo:onkyoAVR:avr-livingroom")
 ```
 
 where the first parameter always has to be `onkyo` and the second (`onkyo:onkyoAVR:avr-livingroom`) is the Thing UID of the broker that should be used.
 Once this action instance is retrieved, you can invoke the `onkyoActions.sendRawCommand(String action, String value)` method on it:
 
-```
+```java
 onkyoActions.sendRawCommand("CTL", "UP")
 ```
 
@@ -194,28 +201,28 @@ Also note that when sending multiple commands there has to be a `Thread::sleep(1
 
 Here after are the ID values of the input sources:
 
--   00: DVR/VCR
--   01: SATELLITE/CABLE
--   02: GAME
--   03: AUX
--   04: GAME
--   05: PC
--   16: BLURAY/DVD
--   32: TAPE1
--   33: TAPE2
--   34: PHONO
--   35: CD
--   36: FM
--   37: AM
--   38: TUNER
--   39: MUSICSERVER
--   40: INTERNETRADIO
--   41: USB
--   42: USB_BACK
--   43: NETWORK
--   45: AIRPLAY
--   48: MULTICH
--   50: SIRIUS
+- 00: DVR/VCR
+- 01: SATELLITE/CABLE
+- 02: GAME
+- 03: AUX
+- 04: GAME
+- 05: PC
+- 16: BLURAY/DVD
+- 32: TAPE1
+- 33: TAPE2
+- 34: PHONO
+- 35: CD
+- 36: FM
+- 37: AM
+- 38: TUNER
+- 39: MUSICSERVER
+- 40: INTERNETRADIO
+- 41: USB
+- 42: USB_BACK
+- 43: NETWORK
+- 45: AIRPLAY
+- 48: MULTICH
+- 50: SIRIUS
 
 ## Item Configuration
 
@@ -255,6 +262,11 @@ String avrLrNet_Item6     "Item6 [%s]"     <text>   { channel="onkyo:onkyoAVR:av
 String avrLrNet_Item7     "Item7 [%s]"     <text>   { channel="onkyo:onkyoAVR:avr-livingroom:netmenu#item7" }
 String avrLrNet_Item8     "Item8 [%s]"     <text>   { channel="onkyo:onkyoAVR:avr-livingroom:netmenu#item8" }
 String avrLrNet_Item9     "Item9 [%s]"     <text>   { channel="onkyo:onkyoAVR:avr-livingroom:netmenu#item9" }
+
+String audioIn            "Audio In [%s]"   <settings>   ["Point"]   { channel="onkyo:onkyoAVR:avr-livingroom:information#audioIn" }
+String audioOut           "Audio Out [%s]"  <settings>   ["Point"]   { channel="onkyo:onkyoAVR:avr-livingroom:information#audioOut" }
+String videoIn            "Video In [%s]"   <settings>   ["Point"]   { channel="onkyo:onkyoAVR:avr-livingroom:information#videoIn" }
+String videoOut           "Video Out [%s]"  <settings>   ["Point"]   { channel="onkyo:onkyoAVR:avr-livingroom:information#videoOut" }
 ```
 
 ## Sitemap Configuration
@@ -300,6 +312,12 @@ sitemap demo label="Onkyo AVR"
         Text      item=avrLrNet_Item7
         Text      item=avrLrNet_Item8
         Text      item=avrLrNet_Item9
+    }
+    Frame label="Audio & Video Information" {
+        Text      item=audioIn
+        Text      item=audioOut
+        Text      item=videoIn
+        Text      item=videoOut
     }
 }
 ```

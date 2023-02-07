@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -12,14 +12,14 @@
  */
 package org.openhab.binding.tplinksmarthome.internal;
 
-import static org.openhab.binding.tplinksmarthome.internal.TPLinkSmartHomeBindingConstants.*;
-import static org.openhab.binding.tplinksmarthome.internal.TPLinkSmartHomeThingType.*;
+import static org.openhab.binding.tplinksmarthome.internal.TPLinkSmartHomeThingType.SUPPORTED_THING_TYPES;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.tplinksmarthome.internal.device.BulbDevice;
 import org.openhab.binding.tplinksmarthome.internal.device.DimmerDevice;
 import org.openhab.binding.tplinksmarthome.internal.device.EnergySwitchDevice;
+import org.openhab.binding.tplinksmarthome.internal.device.LightStripDevice;
 import org.openhab.binding.tplinksmarthome.internal.device.PowerStripDevice;
 import org.openhab.binding.tplinksmarthome.internal.device.RangeExtenderDevice;
 import org.openhab.binding.tplinksmarthome.internal.device.SmartHomeDevice;
@@ -46,13 +46,13 @@ public class TPLinkSmartHomeHandlerFactory extends BaseThingHandlerFactory {
     private @NonNullByDefault({}) TPLinkIpAddressService ipAddressService;
 
     @Override
-    public boolean supportsThingType(ThingTypeUID thingTypeUID) {
+    public boolean supportsThingType(final ThingTypeUID thingTypeUID) {
         return SUPPORTED_THING_TYPES.contains(thingTypeUID);
     }
 
     @Nullable
     @Override
-    protected ThingHandler createHandler(Thing thing) {
+    protected ThingHandler createHandler(final Thing thing) {
         final ThingTypeUID thingTypeUID = thing.getThingTypeUID();
         final TPLinkSmartHomeThingType type = TPLinkSmartHomeThingType.THING_TYPE_MAP.get(thingTypeUID);
 
@@ -63,32 +63,28 @@ public class TPLinkSmartHomeHandlerFactory extends BaseThingHandlerFactory {
 
         switch (type.getDeviceType()) {
             case BULB:
-                if (TPLinkSmartHomeThingType.isBulbDeviceWithTemperatureColor1(thingTypeUID)) {
-                    device = new BulbDevice(thingTypeUID, COLOR_TEMPERATURE_1_MIN, COLOR_TEMPERATURE_1_MAX);
-                } else if (TPLinkSmartHomeThingType.isBulbDeviceWithTemperatureColor2(thingTypeUID)) {
-                    device = new BulbDevice(thingTypeUID, COLOR_TEMPERATURE_2_MIN, COLOR_TEMPERATURE_2_MAX);
-                } else {
-                    device = new BulbDevice(thingTypeUID);
-                }
+                device = new BulbDevice(type);
                 break;
             case DIMMER:
                 device = new DimmerDevice();
                 break;
+            case LIGHT_STRIP:
+                device = new LightStripDevice(type);
+                break;
             case PLUG:
-                if (HS110.is(thingTypeUID) || KP115.is(thingTypeUID)) {
-                    device = new EnergySwitchDevice();
-                } else {
-                    device = new SwitchDevice();
-                }
+                device = new SwitchDevice();
+                break;
+            case PLUG_WITH_ENERGY:
+                device = new EnergySwitchDevice();
+                break;
+            case STRIP:
+                device = new PowerStripDevice(type);
                 break;
             case SWITCH:
                 device = new SwitchDevice();
                 break;
             case RANGE_EXTENDER:
                 device = new RangeExtenderDevice();
-                break;
-            case STRIP:
-                device = new PowerStripDevice(type);
                 break;
             default:
                 return null;
@@ -97,11 +93,11 @@ public class TPLinkSmartHomeHandlerFactory extends BaseThingHandlerFactory {
     }
 
     @Reference
-    protected void setTPLinkIpAddressCache(TPLinkIpAddressService ipAddressCache) {
+    protected void setTPLinkIpAddressCache(final TPLinkIpAddressService ipAddressCache) {
         this.ipAddressService = ipAddressCache;
     }
 
-    protected void unsetTPLinkIpAddressCache(TPLinkIpAddressService ipAddressCache) {
+    protected void unsetTPLinkIpAddressCache(final TPLinkIpAddressService ipAddressCache) {
         this.ipAddressService = null;
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -52,10 +52,13 @@ public class PacketFactory {
         register(GetColorZonesRequest.class);
         register(GetEchoRequest.class);
         register(GetGroupRequest.class);
+        register(GetHevCycleConfigurationRequest.class);
+        register(GetHevCycleRequest.class);
         register(GetHostFirmwareRequest.class);
         register(GetHostInfoRequest.class);
         register(GetInfoRequest.class);
         register(GetLabelRequest.class);
+        register(GetLastHevCycleResultRequest.class);
         register(GetLightInfraredRequest.class);
         register(GetLightPowerRequest.class);
         register(GetLocationRequest.class);
@@ -71,16 +74,21 @@ public class PacketFactory {
         register(SetColorRequest.class);
         register(SetColorZonesRequest.class);
         register(SetDimAbsoluteRequest.class);
+        register(SetHevCycleRequest.class);
+        register(SetHevCycleConfigurationRequest.class);
         register(SetLabelRequest.class);
         register(SetLightInfraredRequest.class);
         register(SetLightPowerRequest.class);
         register(SetPowerRequest.class);
         register(SetTagsRequest.class);
         register(StateGroupResponse.class);
+        register(StateHevCycleConfigurationResponse.class);
+        register(StateHevCycleResponse.class);
         register(StateHostFirmwareResponse.class);
         register(StateHostInfoResponse.class);
         register(StateInfoResponse.class);
         register(StateLabelResponse.class);
+        register(StateLastHevCycleResultResponse.class);
         register(StateLightInfraredResponse.class);
         register(StateLightPowerResponse.class);
         register(StateLocationResponse.class);
@@ -110,7 +118,7 @@ public class PacketFactory {
     /**
      * Registers a new generic packet handler for the given packet class. The
      * packet class must meet the criteria for {@link GenericHandler};
-     * specifically, it must have an no-argument constructor and require no
+     * specifically, it must have a no-argument constructor and require no
      * parsing logic outside of an invocation of
      * {@link Packet#parse(java.nio.ByteBuffer)}.
      *

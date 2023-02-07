@@ -1,20 +1,20 @@
 # Airthings
 
-This extension adds support for [Airthings](https://www.airthings.com) indoor air quality monitor sensors. 
+This extension adds support for [Airthings](https://www.airthings.com) indoor air quality monitor sensors.
 
 ## Supported Things
 
 Following thing types are supported by this extension:
 
-| Thing Type ID       | Description               |
-| ------------------- | ------------------------- |
-| airthings_wave_plus | Airthings Wave Plus       |
-| airthings_wave_mini | Airthings Wave Mini       |
-
+| Thing Type ID       | Description                            |
+| ------------------- | -------------------------------------- |
+| airthings_wave_plus | Airthings Wave Plus                    |
+| airthings_wave_mini | Airthings Wave Mini                    |
+| airthings_wave_gen1 | Airthings Wave 1st Gen (SN 2900xxxxxx) |
 
 ## Discovery
 
-As any other Bluetooth device, Airthings devices are discovered automatically by the corresponding bridge. 
+As any other Bluetooth device, Airthings devices are discovered automatically by the corresponding bridge.
 
 ## Thing Configuration
 
@@ -44,18 +44,28 @@ The `Airthings Wave Plus` thing has additionally the following channels:
 | radon_st_avg       | Number:Density           | The measured radon short term average level |
 | radon_lt_avg       | Number:Density           | The measured radon long term average level  |
 
+The `Airthings Wave Gen 1` thing has the following channels:
+
+| Channel ID         | Item Type                | Description                                 |
+| ------------------ | ------------------------ | ------------------------------------------- |
+| radon_st_avg       | Number:Density           | The measured radon short term average level |
+| radon_lt_avg       | Number:Density           | The measured radon long term average level  |
+| temperature        | Number:Temperature       | The measured temperature                    |
+| humidity           | Number:Dimensionless     | The measured humidity                       |
+
+Note: For the `Airthings Wave Gen 1`, only one channel can be updated at each refreshInterval, so it will take refreshInterval x 4 cycles to sequentially update all 4 channels  
 
 ## Example
 
 airthings.things (assuming you have a Bluetooth bridge with the ID `bluetooth:bluegiga:adapter1`:
 
-```
+```java
 bluetooth:airthings_wave_plus:adapter1:sensor1  "Airthings Wave Plus Sensor 1" (bluetooth:bluegiga:adapter1) [ address="12:34:56:78:9A:BC", refreshInterval=300 ]
 ```
 
 airthings.items:
 
-```
+```java
 Number:Temperature      temperature     "Temperature [%.1f %unit%]"                   { channel="bluetooth:airthings_wave_plus:adapter1:sensor1:temperature" }
 Number:Dimensionless    humidity        "Humidity [%d %unit%]"                        { channel="bluetooth:airthings_wave_plus:adapter1:sensor1:humidity" }
 Number:Pressure         pressure        "Air Pressure [%d %unit%]"                    { channel="bluetooth:airthings_wave_plus:adapter1:sensor1:pressure" }

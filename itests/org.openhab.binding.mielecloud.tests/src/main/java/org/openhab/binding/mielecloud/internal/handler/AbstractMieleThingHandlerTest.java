@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -27,12 +27,14 @@ import java.util.Optional;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openhab.binding.mielecloud.internal.MieleCloudBindingConstants;
 import org.openhab.binding.mielecloud.internal.auth.OAuthTokenRefresher;
 import org.openhab.binding.mielecloud.internal.auth.OpenHabOAuthTokenRefresher;
 import org.openhab.binding.mielecloud.internal.util.MieleCloudBindingIntegrationTestConstants;
+import org.openhab.binding.mielecloud.internal.util.ReflectionUtil;
 import org.openhab.binding.mielecloud.internal.webservice.MieleWebservice;
 import org.openhab.binding.mielecloud.internal.webservice.MieleWebserviceFactory;
 import org.openhab.binding.mielecloud.internal.webservice.api.DeviceState;
@@ -127,6 +129,12 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     protected ItemRegistry getItemRegistry() {
         assertNotNull(itemRegistry);
         return Objects.requireNonNull(itemRegistry);
+    }
+
+    @Override
+    protected void waitForAssert(Runnable assertion) {
+        // Use a larger timeout to avoid test failures in the CI build.
+        waitForAssert(assertion, 2 * DFL_TIMEOUT, 2 * DFL_SLEEP_TIME);
     }
 
     private void setUpThingRegistry() {
@@ -225,7 +233,18 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
 
         ThingHandler handler = thing.getHandler();
         assertNotNull(handler);
-        return (AbstractMieleThingHandler) Objects.requireNonNull(handler);
+        AbstractMieleThingHandler mieleThingHandler = (AbstractMieleThingHandler) Objects.requireNonNull(handler);
+
+        waitForAssert(() -> {
+            try {
+                assertNotNull(ReflectionUtil.invokePrivate(mieleThingHandler, "getBridge"));
+            } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException e) {
+                throw new RuntimeException(e);
+            }
+            assertNotNull(getBridge().getThing(thingUid));
+        });
+
+        return mieleThingHandler;
     }
 
     private List<Channel> createChannelsForThingHandler(ThingTypeUID thingTypeUid, ThingUID thingUid) {
@@ -313,6 +332,9 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
         setUpThingRegistry();
         setUpItemRegistry();
         setUpWebservice();
+    }
+
+    protected void setUpBridgeAndThing() throws Exception {
         setUpBridge();
         thingHandler = setUpThingHandler();
     }
@@ -345,14 +367,26 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
      */
     protected abstract AbstractMieleThingHandler setUpThingHandler();
 
+    @AfterEach
+    public void tearDownAbstractMieleThingHandlerTest() {
+        getThingRegistry().forceRemove(getThingHandler().getThing().getUID());
+        getThingRegistry().forceRemove(getBridge().getUID());
+    }
+
     @Test
     public void testCachedStateIsQueriedOnInitialize() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // then:
         verify(getWebserviceMock()).dispatchDeviceState(SERIAL_NUMBER);
     }
 
     @Test
-    public void testThingStatusIsOfflineWithDetailGoneAndDetailMessageWhenDeviceIsRemoved() {
+    public void testThingStatusIsOfflineWithDetailGoneAndDetailMessageWhenDeviceIsRemoved() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getBridgeHandler().onDeviceRemoved(SERIAL_NUMBER);
 
@@ -373,8 +407,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testStatusIsSetToOnlineWhenDeviceStateIsValid() {
+    public void testStatusIsSetToOnlineWhenDeviceStateIsValid() throws Exception {
         // given:
+        setUpBridgeAndThing();
+
         DeviceState deviceState = createDeviceStateMock(StateType.ON, "On");
 
         // when:
@@ -385,8 +421,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testStatusIsSetToOfflineWhenDeviceIsNotConnected() {
+    public void testStatusIsSetToOfflineWhenDeviceIsNotConnected() throws Exception {
         // given:
+        setUpBridgeAndThing();
+
         DeviceState deviceState = createDeviceStateMock(StateType.NOT_CONNECTED, "Not connected");
 
         // when:
@@ -398,14 +436,16 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testFailingPutProcessActionDoesNotSetTheDeviceToOffline() {
+    public void testFailingPutProcessActionDoesNotSetTheDeviceToOffline() throws Exception {
         // given:
+        doThrow(MieleWebserviceException.class).when(getWebserviceMock()).putProcessAction(any(),
+                eq(ProcessAction.STOP));
+
+        setUpBridgeAndThing();
+
         DeviceState deviceState = createDeviceStateMock(StateType.ON, "On");
         getBridgeHandler().onDeviceStateUpdated(deviceState);
         assertThingStatusIs(getThingHandler().getThing(), ThingStatus.ONLINE, ThingStatusDetail.NONE);
-
-        doThrow(MieleWebserviceException.class).when(getWebserviceMock()).putProcessAction(any(),
-                eq(ProcessAction.STOP));
 
         // when:
         getThingHandler().triggerProcessAction(ProcessAction.STOP);
@@ -415,7 +455,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandProgramStartToStartStopChannel() {
+    public void testHandleCommandProgramStartToStartStopChannel() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(PROGRAM_START_STOP),
                 new StringType(ProgramStatus.PROGRAM_STARTED.getState()));
@@ -427,7 +470,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandProgramStopToStartStopChannel() {
+    public void testHandleCommandProgramStopToStartStopChannel() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(PROGRAM_START_STOP),
                 new StringType(ProgramStatus.PROGRAM_STOPPED.getState()));
@@ -439,7 +485,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandProgramStartToStartStopPauseChannel() {
+    public void testHandleCommandProgramStartToStartStopPauseChannel() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(PROGRAM_START_STOP_PAUSE),
                 new StringType(ProgramStatus.PROGRAM_STARTED.getState()));
@@ -451,7 +500,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandProgramStopToStartStopPauseChannel() {
+    public void testHandleCommandProgramStopToStartStopPauseChannel() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(PROGRAM_START_STOP_PAUSE),
                 new StringType(ProgramStatus.PROGRAM_STOPPED.getState()));
@@ -463,7 +515,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandProgramPauseToStartStopPauseChannel() {
+    public void testHandleCommandProgramPauseToStartStopPauseChannel() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(PROGRAM_START_STOP_PAUSE),
                 new StringType(ProgramStatus.PROGRAM_PAUSED.getState()));
@@ -475,13 +530,15 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testFailingPutLightDoesNotSetTheDeviceToOffline() {
+    public void testFailingPutLightDoesNotSetTheDeviceToOffline() throws Exception {
         // given:
+        doThrow(MieleWebserviceException.class).when(getWebserviceMock()).putLight(any(), eq(true));
+
+        setUpBridgeAndThing();
+
         DeviceState deviceState = createDeviceStateMock(StateType.ON, "On");
         getBridgeHandler().onDeviceStateUpdated(deviceState);
         assertThingStatusIs(getThingHandler().getThing(), ThingStatus.ONLINE, ThingStatusDetail.NONE);
-
-        doThrow(MieleWebserviceException.class).when(getWebserviceMock()).putLight(any(), eq(true));
 
         // when:
         getThingHandler().triggerLight(true);
@@ -491,7 +548,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandLightOff() {
+    public void testHandleCommandLightOff() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(LIGHT_SWITCH), OnOffType.OFF);
 
@@ -502,7 +562,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandLightOn() {
+    public void testHandleCommandLightOn() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(LIGHT_SWITCH), OnOffType.ON);
 
@@ -513,7 +576,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandDoesNothingWhenCommandIsNotOfOnOffType() {
+    public void testHandleCommandDoesNothingWhenCommandIsNotOfOnOffType() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(LIGHT_SWITCH), new DecimalType(0));
 
@@ -522,7 +588,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandPowerOn() {
+    public void testHandleCommandPowerOn() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(POWER_ON_OFF), OnOffType.ON);
 
@@ -533,7 +602,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandPowerOff() {
+    public void testHandleCommandPowerOff() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(POWER_ON_OFF), OnOffType.OFF);
 
@@ -544,7 +616,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testHandleCommandDoesNothingWhenPowerCommandIsNotOfOnOffType() {
+    public void testHandleCommandDoesNothingWhenPowerCommandIsNotOfOnOffType() throws Exception {
+        // given:
+        setUpBridgeAndThing();
+
         // when:
         getThingHandler().handleCommand(channel(POWER_ON_OFF), new DecimalType(0));
 
@@ -553,8 +628,10 @@ public abstract class AbstractMieleThingHandlerTest extends JavaOSGiTest {
     }
 
     @Test
-    public void testMissingPropertiesAreSetWhenAStateUpdateIsReceivedFromTheCloud() {
+    public void testMissingPropertiesAreSetWhenAStateUpdateIsReceivedFromTheCloud() throws Exception {
         // given:
+        setUpBridgeAndThing();
+
         assertFalse(getThingHandler().getThing().getProperties().containsKey(Thing.PROPERTY_SERIAL_NUMBER));
         assertFalse(getThingHandler().getThing().getProperties().containsKey(Thing.PROPERTY_MODEL_ID));
 

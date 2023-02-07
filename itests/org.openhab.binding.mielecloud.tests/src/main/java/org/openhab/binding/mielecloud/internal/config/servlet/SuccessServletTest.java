@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -130,17 +130,5 @@ public class SuccessServletTest extends AbstractConfigFlowTest {
         // then:
         assertTrue(website.contains("Pairing failed!"));
         assertTrue(website.contains("Missing e-mail address."));
-    }
-
-    @Test
-    public void whenTheSuccessPageIsRequestedAndAMalformedEmailIsPassedThenTheFailurePageIsShown() throws Exception {
-        // when:
-        Website website = getCrawler().doGetRelative("/mielecloud/success?" + SuccessServlet.BRIDGE_UID_PARAMETER_NAME
-                + "=" + MieleCloudBindingIntegrationTestConstants.BRIDGE_THING_UID.getAsString() + "&"
-                + SuccessServlet.EMAIL_PARAMETER_NAME + "=not:an!email");
-
-        // then:
-        assertTrue(website.contains("Pairing failed!"));
-        assertTrue(website.contains("Malformed e-mail address."));
     }
 }

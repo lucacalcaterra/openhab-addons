@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -29,11 +29,12 @@ import org.openhab.binding.avmfritz.internal.config.AVMFritzDeviceConfiguration;
 import org.openhab.binding.avmfritz.internal.dto.AVMFritzBaseModel;
 import org.openhab.binding.avmfritz.internal.dto.AlertModel;
 import org.openhab.binding.avmfritz.internal.dto.BatteryModel;
+import org.openhab.binding.avmfritz.internal.dto.ColorControlModel;
 import org.openhab.binding.avmfritz.internal.dto.DeviceModel;
 import org.openhab.binding.avmfritz.internal.dto.HeatingModel;
 import org.openhab.binding.avmfritz.internal.dto.HeatingModel.NextChangeModel;
 import org.openhab.binding.avmfritz.internal.dto.HumidityModel;
-import org.openhab.binding.avmfritz.internal.dto.LevelcontrolModel;
+import org.openhab.binding.avmfritz.internal.dto.LevelControlModel;
 import org.openhab.binding.avmfritz.internal.dto.PowerMeterModel;
 import org.openhab.binding.avmfritz.internal.dto.SimpleOnOffModel;
 import org.openhab.binding.avmfritz.internal.dto.SwitchModel;
@@ -44,6 +45,7 @@ import org.openhab.binding.avmfritz.internal.hardware.callbacks.FritzAhaSetBlind
 import org.openhab.core.config.core.Configuration;
 import org.openhab.core.library.types.DateTimeType;
 import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.library.types.HSBType;
 import org.openhab.core.library.types.IncreaseDecreaseType;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.OpenClosedType;
@@ -89,7 +91,7 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
     /**
      * keeps track of the current state for handling of increase/decrease
      */
-    private @Nullable AVMFritzBaseModel state;
+    private AVMFritzBaseModel currentDevice = new DeviceModel();
     private @Nullable String identifier;
 
     /**
@@ -128,7 +130,7 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
             } else {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "Device not present");
             }
-            state = device;
+            currentDevice = device;
 
             updateProperties(device, editProperties());
 
@@ -141,9 +143,6 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
             if (device.isHeatingThermostat()) {
                 updateHeatingThermostat(device.getHkr());
             }
-            if (device.isHANFUNUnit() && device.isHANFUNOnOff()) {
-                updateSimpleOnOffUnit(device.getSimpleOnOffUnit());
-            }
             if (device instanceof DeviceModel) {
                 DeviceModel deviceModel = (DeviceModel) device;
                 if (deviceModel.isTemperatureSensor()) {
@@ -153,10 +152,20 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
                     updateHumiditySensor(deviceModel.getHumidity());
                 }
                 if (deviceModel.isHANFUNAlarmSensor()) {
-                    updateHANFUNAlarmSensor(deviceModel.getAlert());
+                    if (deviceModel.isHANFUNBlinds()) {
+                        updateHANFUNBlindsAlarmSensor(deviceModel.getAlert());
+                    } else {
+                        updateHANFUNAlarmSensor(deviceModel.getAlert());
+                    }
                 }
                 if (deviceModel.isHANFUNBlinds()) {
-                    updateLevelcontrol(deviceModel.getLevelcontrol());
+                    updateLevelControl(deviceModel.getLevelControlModel());
+                } else if (deviceModel.isColorLight()) {
+                    updateColorLight(deviceModel.getColorControlModel(), deviceModel.getLevelControlModel());
+                } else if (deviceModel.isDimmableLight() && !deviceModel.isHANFUNBlinds()) {
+                    updateDimmableLight(deviceModel.getLevelControlModel());
+                } else if (deviceModel.isHANFUNUnit() && deviceModel.isHANFUNOnOff()) {
+                    updateSimpleOnOffUnit(deviceModel.getSimpleOnOffUnit());
                 }
             }
         }
@@ -166,6 +175,17 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
         if (alertModel != null) {
             updateThingChannelState(CHANNEL_CONTACT_STATE,
                     AlertModel.ON.equals(alertModel.getState()) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+        }
+    }
+
+    private void updateHANFUNBlindsAlarmSensor(@Nullable AlertModel alertModel) {
+        if (alertModel != null) {
+            updateThingChannelState(CHANNEL_OBSTRUCTION_ALARM,
+                    OnOffType.from(alertModel.hasObstructionAlarmOccurred()));
+            updateThingChannelState(CHANNEL_TEMPERATURE_ALARM, OnOffType.from(alertModel.hasTemperaturAlarmOccurred()));
+            if (alertModel.hasUnknownAlarmOccurred()) {
+                logger.warn("Unknown blinds alarm {}", alertModel.getState());
+            }
         }
     }
 
@@ -185,9 +205,25 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
         }
     }
 
-    protected void updateLevelcontrol(@Nullable LevelcontrolModel levelcontrolModel) {
-        if (levelcontrolModel != null) {
-            updateThingChannelState(CHANNEL_ROLLERSHUTTER, new PercentType(levelcontrolModel.getLevelPercentage()));
+    protected void updateLevelControl(@Nullable LevelControlModel levelControlModel) {
+        if (levelControlModel != null) {
+            updateThingChannelState(CHANNEL_ROLLERSHUTTER, new PercentType(levelControlModel.getLevelPercentage()));
+        }
+    }
+
+    private void updateDimmableLight(@Nullable LevelControlModel levelControlModel) {
+        if (levelControlModel != null) {
+            updateThingChannelState(CHANNEL_BRIGHTNESS, new PercentType(levelControlModel.getLevelPercentage()));
+        }
+    }
+
+    private void updateColorLight(@Nullable ColorControlModel colorControlModel,
+            @Nullable LevelControlModel levelControlModel) {
+        if (colorControlModel != null && levelControlModel != null) {
+            DecimalType hue = new DecimalType(colorControlModel.hue);
+            PercentType saturation = ColorControlModel.toPercent(colorControlModel.saturation);
+            PercentType brightness = new PercentType(levelControlModel.getLevelPercentage());
+            updateThingChannelState(CHANNEL_COLOR, new HSBType(hue, saturation, brightness));
         }
     }
 
@@ -376,12 +412,38 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
             case CHANNEL_BATTERY_LOW:
             case CHANNEL_CONTACT_STATE:
             case CHANNEL_LAST_CHANGE:
+            case CHANNEL_OBSTRUCTION_ALARM:
+            case CHANNEL_TEMPERATURE_ALARM:
                 logger.debug("Channel {} is a read-only channel and cannot handle command '{}'", channelId, command);
                 break;
             case CHANNEL_OUTLET:
             case CHANNEL_ON_OFF:
                 if (command instanceof OnOffType) {
                     fritzBox.setSwitch(ain, OnOffType.ON.equals(command));
+                }
+                break;
+            case CHANNEL_COLOR:
+            case CHANNEL_BRIGHTNESS:
+                BigDecimal brightness = null;
+                if (command instanceof HSBType) {
+                    HSBType hsbType = (HSBType) command;
+                    brightness = hsbType.getBrightness().toBigDecimal();
+                    fritzBox.setUnmappedHueAndSaturation(ain, hsbType.getHue().intValue(),
+                            ColorControlModel.fromPercent(hsbType.getSaturation()), 0);
+                } else if (command instanceof PercentType) {
+                    brightness = ((PercentType) command).toBigDecimal();
+                } else if (command instanceof OnOffType) {
+                    fritzBox.setSwitch(ain, OnOffType.ON.equals(command));
+                } else if (command instanceof IncreaseDecreaseType) {
+                    brightness = ((DeviceModel) currentDevice).getLevelControlModel().getLevelPercentage();
+                    if (IncreaseDecreaseType.INCREASE.equals(command)) {
+                        brightness.add(BigDecimal.TEN);
+                    } else {
+                        brightness.subtract(BigDecimal.TEN);
+                    }
+                }
+                if (brightness != null) {
+                    fritzBox.setLevelPercentage(ain, brightness);
                 }
                 break;
             case CHANNEL_SETTEMP:
@@ -399,7 +461,7 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
                                 ((QuantityType<?>) command).getUnit(), SIUnits.CELSIUS);
                     }
                 } else if (command instanceof IncreaseDecreaseType) {
-                    temperature = state.getHkr().getTsoll();
+                    temperature = currentDevice.getHkr().getTsoll();
                     if (IncreaseDecreaseType.INCREASE.equals(command)) {
                         temperature.add(BigDecimal.ONE);
                     } else {
@@ -410,7 +472,7 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
                 }
                 if (temperature != null) {
                     fritzBox.setSetTemp(ain, fromCelsius(temperature));
-                    HeatingModel heatingModel = state.getHkr();
+                    HeatingModel heatingModel = currentDevice.getHkr();
                     heatingModel.setTsoll(temperature);
                     updateState(CHANNEL_RADIATOR_MODE, new StringType(heatingModel.getRadiatorMode()));
                 }
@@ -426,10 +488,10 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
                             targetTemperature = TEMP_FRITZ_OFF;
                             break;
                         case MODE_COMFORT:
-                            targetTemperature = state.getHkr().getKomfort();
+                            targetTemperature = currentDevice.getHkr().getKomfort();
                             break;
                         case MODE_ECO:
-                            targetTemperature = state.getHkr().getAbsenk();
+                            targetTemperature = currentDevice.getHkr().getAbsenk();
                             break;
                         case MODE_BOOST:
                             targetTemperature = TEMP_FRITZ_MAX;
@@ -441,7 +503,7 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
                     }
                     if (targetTemperature != null) {
                         fritzBox.setSetTemp(ain, targetTemperature);
-                        state.getHkr().setTsoll(targetTemperature);
+                        currentDevice.getHkr().setTsoll(targetTemperature);
                         updateState(CHANNEL_SETTEMP, new QuantityType<>(toCelsius(targetTemperature), SIUnits.CELSIUS));
                     }
                 }
@@ -462,9 +524,8 @@ public abstract class AVMFritzBaseThingHandler extends BaseThingHandler implemen
                         fritzBox.setBlind(ain, BlindCommand.CLOSE);
                     }
                 } else if (command instanceof PercentType) {
-                    PercentType rollershutterCommand = (PercentType) command;
-                    BigDecimal levelpercentage = rollershutterCommand.toBigDecimal();
-                    fritzBox.setLevelpercentage(ain, levelpercentage);
+                    BigDecimal levelPercentage = ((PercentType) command).toBigDecimal();
+                    fritzBox.setLevelPercentage(ain, levelPercentage);
                 } else {
                     logger.debug("Received unknown rollershutter command type '{}'", command.toString());
                 }

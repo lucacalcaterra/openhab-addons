@@ -4,6 +4,8 @@ This binding connects openHAB with Yamaha Receivers of product line CX-A5000, RX
 
 If your hardware is on the list but still does not work, please fill a bug report!
 
+If your Yamaha receiver is not on the list, it likely is a newer model that supports MusicCast, please try the [MusicCast Binding](https://www.openhab.org/addons/bindings/yamahamusiccast/) instead.
+
 ## Supported Things
 
 | Thing    | Type   | Description              |
@@ -79,6 +81,8 @@ Zone control channels are:
 | `zone_channels#surroundProgram`               | `String`     | Sets the surround mode. Examples: `2ch Stereo`, `7ch Stereo`, `Hall in Munic`, `Straight`, `Surround Decoder`.                                                                                                                                                                                                                                                                                                                          |
 | `zone_channels#scene`                         | `String`     | Sets the scene. Examples: `Scene 1`, `Scene 2`, `Scene 3`, `Scene 4`. Write only (state updates are not available). May not be supported on all models (e.g. RX-V3900).                                                                                                                                                                                                                                                                 |
 | `zone_channels#dialogueLevel`                 | `Number`     | Sets the receivers dialogue level. May not be supported on all models.                                                                                                                                                                                                                                                                                                                                                                  |
+| `zone_channels#hdmi1Out`                      | `Number`     | Switches the HDMI1 Output ON or OFF (channel in desc.xml is placed in Main_Zone but in fact it is more some kind of system parameter). May not be supported on all models.                                                                                                                                                                                                                                                              |
+| `zone_channels#hdmi2Out`                      | `Number`     | Switches the HDMI2 Output ON or OFF (channel is desc.xml is placed in Main_Zone but in fact it is more some kind of system parameter). May not be supported on all models.                                                                                                                                                                                                                                                              |
 | `playback_channels#preset`                    | `Number`     | Set a preset. Not supported by `Spotify` input. For `NET RADIO` input there is no way to get current preset (tested on RX-S601D, RX-V3900), so the preset is write only. For RX-V3900 the presets are alphanumeric `A1`,`A2`,`B1`,`B2` thus you need to use numbers grater than 100 that represent these presets as follows: 101, 102, 201, 202.                                                                                        |
 | `playback_channels#playback`                  | `String`     | Set a play mode or get the current play mode. Values supported: `Previous`, `Play`, `Pause`, `Stop`, `Next`. Applies for inputs which support playback (`Spotify`, `SERVER`, `NET RADIO`, `Bluetooth`). Note that some values may not be supported on certain input type and AVR model combination. For `Spotify` and `Bluetooth` all values work, but for `NET RADIO` input only `Play` and `Stop` are supported (tested on RX-S601D). |
 | `playback_channels#playback_station`          | `String`     | Get the current played station (radio). Applies to `TUNER` and `NET RADIO` inputs only.                                                                                                                                                                                                                                                                                                                                                 |
@@ -134,6 +138,8 @@ String      Yamaha_Input           "Input [%s]"                <video>          
 String      Yamaha_Surround        "Surround [%s]"             <video>              { channel="yamahareceiver:zone:96a40ba9:Main_Zone:zone_channels#surroundProgram" }
 String      Yamaha_Scene           "Scene []"                  <video>              { channel="yamahareceiver:zone:96a40ba9:Main_Zone:zone_channels#scene" }
 Switch      Yamaha_Dialogue_Level  "Dialogue Level [%d]"       <soundvolume>        { channel="yamahareceiver:zone:96a40ba9:Main_Zone:zone_channels#dialogueLevel" }
+Switch      Yamaha_HDMI1_Output    "HDMI1 Output [%s]"      	 <switch>             { channel="yamahareceiver:zone:96a40ba9:Main_Zone:zone_channels#hdmi1Out" }
+Switch      Yamaha_HDMI2_Output    "HDMI2 Output [%s]"      	 <switch>             { channel="yamahareceiver:zone:96a40ba9:Main_Zone:zone_channels#hdmi2Out" }
 
 Switch      Yamaha_PartyMode       "Party mode [%s]"           <switch>             { channel="yamahareceiver:yamahaAV:96a40ba9:party_mode" }
 Switch      Yamaha_PartyModeMute   "Party mode mute [%s]"      <soundvolume_mute>   { channel="yamahareceiver:yamahaAV:96a40ba9:party_mode_mute" }
@@ -150,6 +156,8 @@ Selection   item=Yamaha_Input            mappings=[HDMI1="Kodi",HDMI2="PC",AUDIO
 Selection   item=Yamaha_Surround         mappings=["2ch Stereo"="2ch Stereo","5ch Stereo"="5ch Stereo","Chamber"="Chamber","Sci-Fi"="Sci-Fi","Adventure"="Adventure"]
 Switch      item=Yamaha_Scene            mappings=["Scene 1"="Kodi","Scene 2"="TV","Scene 3"="NET","Scene 4"="Radio"]
 Setpoint    item=Yamaha_Dialogue_Level   minValue=0 maxValue=2 step=1
+Switch      item=Yamaha_HDMI1_Output
+Switch      item=Yamaha_HDMI2_Output
 
 Switch      item=Yamaha_PartyMode
 Switch      item=Yamaha_PartyModeMute
@@ -197,6 +205,7 @@ String      Yamaha_Input_Ex
 The synthetic `Yamaha_Input_Ex` will be calculated by a rule (see below) and will drive sitemap visibility (see below).
 
 Rules:
+
 ```
 rule "Yamaha_Input_Ex"
 when
@@ -229,6 +238,7 @@ Notice how we have two preset mappings that each is meant for FM and DAB+ bands 
 Enabling detailed logging may help troubleshoot your configuration (or trace bugs in the binding itself). 
 
 Add the following lines to the logger configuration file (`userdata\etc\org.ops4j.pax.logging.cfg`):
+
 ```
 log4j2.logger.yamaha.name = org.openhab.binding.yamahareceiver
 log4j2.logger.yamaha.level = TRACE

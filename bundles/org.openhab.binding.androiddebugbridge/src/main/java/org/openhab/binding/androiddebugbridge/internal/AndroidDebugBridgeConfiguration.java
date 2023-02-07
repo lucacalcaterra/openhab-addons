@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -38,6 +38,18 @@ public class AndroidDebugBridgeConfiguration {
      * Command timeout seconds.
      */
     public int timeout = 5;
+    /**
+     * Record input duration in seconds.
+     */
+    public int recordDuration = 5;
+    /**
+     * Assumed max volume for devices with android versions that do not expose this value (>=android 11).
+     */
+    public int deviceMaxVolume = 25;
+    /**
+     * Settings key for android versions where volume is gather using settings command (>=android 11).
+     */
+    public String volumeSettingKey = "volume_music_hdmi";
     /**
      * Configure media state detection behavior by package
      */

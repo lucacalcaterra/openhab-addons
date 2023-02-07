@@ -205,7 +205,7 @@
 		<label>Next Setpoint Change</label>
 		<description>Next change of Setpoint Temperature.</description>
 		<category>Time</category>
-		<state readOnly="true"/>
+		<state readOnly="true" pattern="%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS"/>
 	</channel-type>
 
 	<channel-type id="next_temp" advanced="true">
@@ -224,19 +224,32 @@
 		<state pattern="%s" readOnly="true"/>
 	</channel-type>
 
+	<channel-type id="obstruction_alarm">
+		<item-type>Switch</item-type>
+		<label>Obstruction Alarm</label>
+		<description>Obstruction alarm of the blinds. The blinds were stopped and moved a bit in the opposite direction.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="temperature_alarm">
+		<item-type>Switch</item-type>
+		<label>Temperature Alarm</label>
+		<description>Temperature alarm of the blinds. Indicates overheating of the motor.</description>
+		<state readOnly="true"/>
+	</channel-type>
+
 	<channel-type id="last_change">
 		<item-type>DateTime</item-type>
 		<label>Last Change</label>
 		<description>States the last time the button was pressed.</description>
 		<category>Time</category>
-		<state readOnly="true"/>
+		<state readOnly="true" pattern="%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS"/>
 	</channel-type>
 
 	<channel-type id="rollershutter">
 		<item-type>Rollershutter</item-type>
 		<label>Rollershutter Control</label>
 		<description>Controls the rollershutter and states its opening level in percent</description>
-		<category>Blinds</category>
 	</channel-type>
 
 </thing:thing-descriptions>

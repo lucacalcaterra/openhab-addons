@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -175,7 +175,7 @@ public class MetadataUtils {
         if ("%%".equals(unit)) {
             return "%d %%";
         }
-        if (unit != null && unit != "") {
+        if (unit != null && !unit.isEmpty()) {
             String pattern = getPattern(dp);
             if (pattern != null) {
                 return String.format("%s %s", pattern, "%unit%");
@@ -311,6 +311,8 @@ public class MetadataUtils {
                     case "V":
                         return ITEM_TYPE_NUMBER + ":ElectricPotential";
                     case "100%":
+                    case "% rH":
+                    case "% rF":
                     case "%":
                         return ITEM_TYPE_NUMBER + ":Dimensionless";
                     case "mHz":

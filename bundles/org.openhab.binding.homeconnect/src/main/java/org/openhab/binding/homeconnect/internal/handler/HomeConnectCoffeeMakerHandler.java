@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -72,7 +72,7 @@ public class HomeConnectCoffeeMakerHandler extends AbstractHomeConnectThingHandl
         // register coffee maker specific SSE event handlers
         handlers.put(EVENT_PROGRAM_PROGRESS, event -> {
             if (event.getValue() == null || event.getValueAsInt() == 0) {
-                getThingChannel(CHANNEL_PROGRAM_PROGRESS_STATE)
+                getLinkedChannel(CHANNEL_PROGRAM_PROGRESS_STATE)
                         .ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
             } else {
                 defaultPercentQuantityTypeEventHandler(CHANNEL_PROGRAM_PROGRESS_STATE).handle(event);
@@ -97,7 +97,7 @@ public class HomeConnectCoffeeMakerHandler extends AbstractHomeConnectThingHandl
     @Override
     protected void resetProgramStateChannels(boolean offline) {
         super.resetProgramStateChannels(offline);
-        getThingChannel(CHANNEL_PROGRAM_PROGRESS_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
-        getThingChannel(CHANNEL_ACTIVE_PROGRAM_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+        getLinkedChannel(CHANNEL_PROGRAM_PROGRESS_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+        getLinkedChannel(CHANNEL_ACTIVE_PROGRAM_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
     }
 }

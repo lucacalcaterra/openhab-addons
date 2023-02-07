@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -19,7 +19,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -90,9 +89,6 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
 
     // time in seconds to try to reconnect
     private static final int RECONNECT_TIME = 60;
-
-    // utf8 charset name
-    private static final String UTF8_NAME = StandardCharsets.UTF_8.name();
 
     // the value by which the volume is changed by each INCREASE or
     // DECREASE-Event
@@ -520,21 +516,11 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
         }
 
         private String decode(String raw) {
-            try {
-                return URLDecoder.decode(raw, UTF8_NAME);
-            } catch (UnsupportedEncodingException e) {
-                logger.debug("Failed to decode '{}' ", raw, e);
-                return null;
-            }
+            return URLDecoder.decode(raw, StandardCharsets.UTF_8);
         }
 
         private String encode(String raw) {
-            try {
-                return URLEncoder.encode(raw, UTF8_NAME);
-            } catch (UnsupportedEncodingException e) {
-                logger.debug("Failed to encode '{}' ", raw, e);
-                return null;
-            }
+            return URLEncoder.encode(raw, StandardCharsets.UTF_8);
         }
 
         @NonNullByDefault
@@ -590,7 +576,7 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
                     players.put(macAddress, player);
                     updatePlayer(listener -> listener.playerAdded(player));
                     // tell the server we want to subscribe to player updates
-                    sendCommand(player.macAddress + " status - 1 subscribe:10 tags:yagJlNKjc");
+                    sendCommand(player.macAddress + " status - 1 subscribe:10 tags:yagJlNKjcA");
                 }
             }
             for (final SqueezeBoxPlayer player : players.values()) {
@@ -646,7 +632,7 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
                     String volumeStringValue = decode(messageParts[3]);
                     updatePlayer(listener -> {
                         try {
-                            int volume = Integer.parseInt(volumeStringValue);
+                            int volume = Math.round(Float.parseFloat(volumeStringValue));
 
                             // Check if we received a relative volume change, or an absolute
                             // volume value.
@@ -688,94 +674,120 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
         }
 
         private void handleStatusMessage(final String mac, String[] messageParts) {
-            String remoteTitle = "", artist = "", album = "", genre = "", year = "";
+            String remoteTitle = "", artist = "", album = "", genre = "", year = "", albumArtist = "", trackArtist = "",
+                    band = "", composer = "", conductor = "";
             boolean coverart = false;
             String coverid = null;
             String artworkUrl = null;
 
             for (KeyValue entry : decodeKeyValueResponse(messageParts)) {
-                // Parameter Power
-                if ("power".equals(entry.key)) {
-                    final boolean power = "1".equals(entry.value);
-                    updatePlayer(listener -> listener.powerChangeEvent(mac, power));
-                }
-                // Parameter Volume
-                else if ("mixer volume".equals(entry.key)) {
-                    final int volume = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.absoluteVolumeChangeEvent(mac, volume));
-                }
-                // Parameter Mode
-                else if ("mode".equals(entry.key)) {
-                    updatePlayer(listener -> listener.modeChangeEvent(mac, entry.value));
-                }
-                // Parameter Playing Time
-                else if ("time".equals(entry.key)) {
-                    final int time = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.currentPlayingTimeEvent(mac, time));
-                }
-                // Parameter duration
-                else if ("duration".equals(entry.key)) {
-                    final int duration = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.durationEvent(mac, duration));
-                }
-                // Parameter Playing Playlist Index
-                else if ("playlist_cur_index".equals(entry.key)) {
-                    final int index = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.currentPlaylistIndexEvent(mac, index));
-                }
-                // Parameter Playlist Number Tracks
-                else if ("playlist_tracks".equals(entry.key)) {
-                    final int track = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.numberPlaylistTracksEvent(mac, track));
-                }
-                // Parameter Playlist Repeat Mode
-                else if ("playlist repeat".equals(entry.key)) {
-                    final int repeat = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.currentPlaylistRepeatEvent(mac, repeat));
-                }
-                // Parameter Playlist Shuffle Mode
-                else if ("playlist shuffle".equals(entry.key)) {
-                    final int shuffle = (int) Double.parseDouble(entry.value);
-                    updatePlayer(listener -> listener.currentPlaylistShuffleEvent(mac, shuffle));
-                }
-                // Parameter Title
-                else if ("title".equals(entry.key)) {
-                    updatePlayer(listener -> listener.titleChangeEvent(mac, entry.value));
-                }
-                // Parameter Remote Title (radio)
-                else if ("remote_title".equals(entry.key)) {
-                    remoteTitle = entry.value;
-                }
-                // Parameter Artist
-                else if ("artist".equals(entry.key)) {
-                    artist = entry.value;
-                }
-                // Parameter Album
-                else if ("album".equals(entry.key)) {
-                    album = entry.value;
-                }
-                // Parameter Genre
-                else if ("genre".equals(entry.key)) {
-                    genre = entry.value;
-                }
-                // Parameter Year
-                else if ("year".equals(entry.key)) {
-                    year = entry.value;
-                }
-                // Parameter artwork_url contains url to cover art
-                else if ("artwork_url".equals(entry.key)) {
-                    artworkUrl = entry.value;
-                }
-                // When coverart is "1" coverid will contain a unique coverart id
-                else if ("coverart".equals(entry.key)) {
-                    coverart = "1".equals(entry.value);
-                }
-                // Id for covert art (only valid when coverart is "1")
-                else if ("coverid".equals(entry.key)) {
-                    coverid = entry.value;
-                } else {
-                    // Added to be able to see additional status message types
-                    logger.trace("Unhandled status message type '{}' (value '{}')", entry.key, entry.value);
+                try {
+                    // Parameter Power
+                    if ("power".equals(entry.key)) {
+                        final boolean power = "1".equals(entry.value);
+                        updatePlayer(listener -> listener.powerChangeEvent(mac, power));
+                    }
+                    // Parameter Volume
+                    else if ("mixer volume".equals(entry.key)) {
+                        final int volume = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.absoluteVolumeChangeEvent(mac, volume));
+                    }
+                    // Parameter Mode
+                    else if ("mode".equals(entry.key)) {
+                        updatePlayer(listener -> listener.modeChangeEvent(mac, entry.value));
+                    }
+                    // Parameter Playing Time
+                    else if ("time".equals(entry.key) && !"N/A".equals(entry.value)) {
+                        final int time = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.currentPlayingTimeEvent(mac, time));
+                    }
+                    // Parameter duration
+                    else if ("duration".equals(entry.key)) {
+                        final int duration = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.durationEvent(mac, duration));
+                    }
+                    // Parameter Playing Playlist Index
+                    else if ("playlist_cur_index".equals(entry.key)) {
+                        final int index = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.currentPlaylistIndexEvent(mac, index));
+                    }
+                    // Parameter Playlist Number Tracks
+                    else if ("playlist_tracks".equals(entry.key)) {
+                        final int track = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.numberPlaylistTracksEvent(mac, track));
+                    }
+                    // Parameter Playlist Repeat Mode
+                    else if ("playlist repeat".equals(entry.key)) {
+                        final int repeat = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.currentPlaylistRepeatEvent(mac, repeat));
+                    }
+                    // Parameter Playlist Shuffle Mode
+                    else if ("playlist shuffle".equals(entry.key)) {
+                        final int shuffle = (int) Double.parseDouble(entry.value);
+                        updatePlayer(listener -> listener.currentPlaylistShuffleEvent(mac, shuffle));
+                    }
+                    // Parameter Title
+                    else if ("title".equals(entry.key)) {
+                        updatePlayer(listener -> listener.titleChangeEvent(mac, entry.value));
+                    }
+                    // Parameter Remote Title (radio)
+                    else if ("remote_title".equals(entry.key)) {
+                        remoteTitle = entry.value;
+                    }
+                    // Parameter Artist
+                    else if ("artist".equals(entry.key)) {
+                        artist = entry.value;
+                    }
+                    // Parameter Album
+                    else if ("album".equals(entry.key)) {
+                        album = entry.value;
+                    }
+                    // Parameter Genre
+                    else if ("genre".equals(entry.key)) {
+                        genre = entry.value;
+                    }
+                    // Parameter Album Artist
+                    else if ("albumartist".equals(entry.key)) {
+                        albumArtist = entry.value;
+                    }
+                    // Parameter Track Artist
+                    else if ("trackartist".equals(entry.key)) {
+                        trackArtist = entry.value;
+                    }
+                    // Parameter Band
+                    else if ("band".equals(entry.key)) {
+                        band = entry.value;
+                    }
+                    // Parameter Composer
+                    else if ("composer".equals(entry.key)) {
+                        composer = entry.value;
+                    }
+                    // Parameter Conductor
+                    else if ("conductor".equals(entry.key)) {
+                        conductor = entry.value;
+                    }
+                    // Parameter Year
+                    else if ("year".equals(entry.key)) {
+                        year = entry.value;
+                    }
+                    // Parameter artwork_url contains url to cover art
+                    else if ("artwork_url".equals(entry.key)) {
+                        artworkUrl = entry.value;
+                    }
+                    // When coverart is "1" coverid will contain a unique coverart id
+                    else if ("coverart".equals(entry.key)) {
+                        coverart = "1".equals(entry.value);
+                    }
+                    // Id for covert art (only valid when coverart is "1")
+                    else if ("coverid".equals(entry.key)) {
+                        coverid = entry.value;
+                    } else {
+                        // Added to be able to see additional status message types
+                        logger.trace("Unhandled status message type '{}' (value '{}')", entry.key, entry.value);
+                    }
+                } catch (NumberFormatException e) {
+                    // Skip this key/value
+                    logger.debug("Cannot parse number in status message: key '{}', value '{}'", entry.key, entry.value);
                 }
             }
 
@@ -785,6 +797,11 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
             final String finalAlbum = album;
             final String finalGenre = genre;
             final String finalYear = year;
+            final String finalAlbumArtist = albumArtist;
+            final String finalTrackArtist = trackArtist;
+            final String finalBand = band;
+            final String finalComposer = composer;
+            final String finalConductor = conductor;
 
             updatePlayer(listener -> {
                 listener.coverArtChangeEvent(mac, finalUrl);
@@ -793,6 +810,11 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
                 listener.albumChangeEvent(mac, finalAlbum);
                 listener.genreChangeEvent(mac, finalGenre);
                 listener.yearChangeEvent(mac, finalYear);
+                listener.albumArtistChangeEvent(mac, finalAlbumArtist);
+                listener.trackArtistChangeEvent(mac, finalTrackArtist);
+                listener.bandChangeEvent(mac, finalBand);
+                listener.composerChangeEvent(mac, finalComposer);
+                listener.conductorChangeEvent(mac, finalConductor);
             });
         }
 
@@ -917,7 +939,7 @@ public class SqueezeBoxServerHandler extends BaseBridgeHandler {
                     boolean hasitems = "1".equals(entry.value);
                     if (f != null) {
                         // Except for some favorites (e.g. Spotify) use hasitems:1 and type:playlist
-                        if (hasitems && isTypePlaylist == false) {
+                        if (hasitems && !isTypePlaylist) {
                             // Skip subfolders
                             favorites.remove(f);
                             f = null;

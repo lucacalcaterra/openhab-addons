@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The {@link HomeConnectOvenHandler} is responsible for handling commands, which are
- * sent to one of the channels of a oven.
+ * sent to one of the channels of an oven.
  *
  * @author Jonas Brüstel - Initial contribution
  */
@@ -114,32 +114,32 @@ public class HomeConnectOvenHandler extends AbstractHomeConnectThingHandler {
             }
         });
         handlers.put(EVENT_POWER_STATE, event -> {
-            getThingChannel(CHANNEL_POWER_STATE).ifPresent(
+            getLinkedChannel(CHANNEL_POWER_STATE).ifPresent(
                     channel -> updateState(channel.getUID(), OnOffType.from(STATE_POWER_ON.equals(event.getValue()))));
 
             if (STATE_POWER_ON.equals(event.getValue())) {
                 updateChannels();
             } else {
                 resetProgramStateChannels(true);
-                getThingChannel(CHANNEL_SELECTED_PROGRAM_STATE)
+                getLinkedChannel(CHANNEL_SELECTED_PROGRAM_STATE)
                         .ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
-                getThingChannel(CHANNEL_ACTIVE_PROGRAM_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
-                getThingChannel(CHANNEL_SETPOINT_TEMPERATURE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
-                getThingChannel(CHANNEL_DURATION).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+                getLinkedChannel(CHANNEL_ACTIVE_PROGRAM_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+                getLinkedChannel(CHANNEL_SETPOINT_TEMPERATURE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+                getLinkedChannel(CHANNEL_DURATION).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
             }
         });
 
         handlers.put(EVENT_OVEN_CAVITY_TEMPERATURE, event -> {
             manuallyUpdateCavityTemperature = false;
-            getThingChannel(CHANNEL_OVEN_CURRENT_CAVITY_TEMPERATURE).ifPresent(channel -> updateState(channel.getUID(),
+            getLinkedChannel(CHANNEL_OVEN_CURRENT_CAVITY_TEMPERATURE).ifPresent(channel -> updateState(channel.getUID(),
                     new QuantityType<>(event.getValueAsInt(), mapTemperature(event.getUnit()))));
         });
 
         handlers.put(EVENT_SETPOINT_TEMPERATURE,
-                event -> getThingChannel(CHANNEL_SETPOINT_TEMPERATURE)
+                event -> getLinkedChannel(CHANNEL_SETPOINT_TEMPERATURE)
                         .ifPresent(channel -> updateState(channel.getUID(),
                                 new QuantityType<>(event.getValueAsInt(), mapTemperature(event.getUnit())))));
-        handlers.put(EVENT_DURATION, event -> getThingChannel(CHANNEL_DURATION).ifPresent(
+        handlers.put(EVENT_DURATION, event -> getLinkedChannel(CHANNEL_DURATION).ifPresent(
                 channel -> updateState(channel.getUID(), new QuantityType<>(event.getValueAsInt(), SECOND))));
     }
 
@@ -214,8 +214,8 @@ public class HomeConnectOvenHandler extends AbstractHomeConnectThingHandler {
     @Override
     protected void resetProgramStateChannels(boolean offline) {
         super.resetProgramStateChannels(offline);
-        getThingChannel(CHANNEL_REMAINING_PROGRAM_TIME_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
-        getThingChannel(CHANNEL_PROGRAM_PROGRESS_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
-        getThingChannel(CHANNEL_ELAPSED_PROGRAM_TIME).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+        getLinkedChannel(CHANNEL_REMAINING_PROGRAM_TIME_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+        getLinkedChannel(CHANNEL_PROGRAM_PROGRESS_STATE).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
+        getLinkedChannel(CHANNEL_ELAPSED_PROGRAM_TIME).ifPresent(c -> updateState(c.getUID(), UnDefType.UNDEF));
     }
 }
