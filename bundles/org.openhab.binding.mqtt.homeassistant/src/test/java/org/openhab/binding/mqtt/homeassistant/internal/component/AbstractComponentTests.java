@@ -41,6 +41,7 @@ import org.openhab.binding.mqtt.homeassistant.internal.HaID;
 import org.openhab.binding.mqtt.homeassistant.internal.HandlerConfiguration;
 import org.openhab.binding.mqtt.homeassistant.internal.config.dto.AbstractChannelConfiguration;
 import org.openhab.binding.mqtt.homeassistant.internal.handler.HomeAssistantThingHandler;
+import org.openhab.core.library.types.HSBType;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatusInfo;
 import org.openhab.core.thing.binding.ThingHandlerCallback;
@@ -173,7 +174,12 @@ public abstract class AbstractComponentTests extends AbstractHomeAssistantTests 
     @SuppressWarnings("null")
     protected static void assertState(AbstractComponent<@NonNull ? extends AbstractChannelConfiguration> component,
             String channelId, State state) {
-        assertThat(component.getChannel(channelId).getState().getCache().getChannelState(), is(state));
+        State actualState = component.getChannel(channelId).getState().getCache().getChannelState();
+        if ((actualState instanceof HSBType actualHsb) && (state instanceof HSBType stateHsb)) {
+            assertThat(actualHsb.closeTo(stateHsb, 0.01), is(true));
+        } else {
+            assertThat(actualState, is(state));
+        }
     }
 
     protected void spyOnChannelUpdates(AbstractComponent<@NonNull ? extends AbstractChannelConfiguration> component,
@@ -225,6 +231,15 @@ public abstract class AbstractComponentTests extends AbstractHomeAssistantTests 
     }
 
     /**
+     * Assert that nothing was published on given topic.
+     *
+     * @param mqttTopic Mqtt topic
+     */
+    protected void assertNothingPublished(String mqttTopic) {
+        verify(bridgeConnection, never()).publish(eq(mqttTopic), any(), anyInt(), anyBoolean());
+    }
+
+    /**
      * Publish payload to all subscribers on specified topic.
      *
      * @param mqttTopic Mqtt topic
@@ -254,7 +269,7 @@ public abstract class AbstractComponentTests extends AbstractHomeAssistantTests 
 
     /**
      * Send command to a thing's channel
-     * 
+     *
      * @param component component
      * @param channelId channel
      * @param command command to send

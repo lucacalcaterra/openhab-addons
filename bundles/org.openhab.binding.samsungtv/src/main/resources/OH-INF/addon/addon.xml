@@ -7,5 +7,22 @@
 	<name>Samsung TV Binding</name>
 	<description>This is the binding for Samsung TV. Binding should support all Samsung TV C (2010), D (2011) and E (2012)
 		models</description>
+	<connection>local</connection>
+
+	<discovery-methods>
+		<discovery-method>
+			<service-type>upnp</service-type>
+			<match-properties>
+				<match-property>
+					<name>manufacturer</name>
+					<regex>(?i).*SAMSUNG ELECTRONICS.*</regex>
+				</match-property>
+				<match-property>
+					<name>deviceType</name>
+					<regex>.*MediaRenderer.*</regex>
+				</match-property>
+			</match-properties>
+		</discovery-method>
+	</discovery-methods>
 
 </addon:addon>

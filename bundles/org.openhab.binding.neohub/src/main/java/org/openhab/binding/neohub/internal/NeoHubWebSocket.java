@@ -15,11 +15,11 @@ package org.openhab.binding.neohub.internal;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -28,6 +28,9 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.openhab.core.io.net.http.WebSocketFactory;
+import org.openhab.core.thing.ThingUID;
+import org.openhab.core.thing.util.ThingWebClientUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,19 +74,14 @@ public class NeoHubWebSocket extends NeoHubSocketBase {
         public @Nullable String response;
     }
 
-    public NeoHubWebSocket(NeoHubConfiguration config, String hubId) throws IOException {
-        super(config, hubId);
+    public NeoHubWebSocket(NeoHubConfiguration config, WebSocketFactory webSocketFactory, ThingUID bridgeUID)
+            throws IOException {
+        super(config, bridgeUID.getAsString());
 
-        // initialise and start ssl context factory, http client, web socket client
         SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
         sslContextFactory.setTrustAll(true);
-        HttpClient httpClient = new HttpClient(sslContextFactory);
-        try {
-            httpClient.start();
-        } catch (Exception e) {
-            throw new IOException("Error starting HTTP client", e);
-        }
-        webSocketClient = new WebSocketClient(httpClient);
+        String name = ThingWebClientUtil.buildWebClientConsumerName(bridgeUID, null);
+        webSocketClient = webSocketFactory.createWebSocketClient(name, sslContextFactory);
         webSocketClient.setConnectTimeout(config.socketTimeout * 1000);
         try {
             webSocketClient.start();
@@ -119,9 +117,9 @@ public class NeoHubWebSocket extends NeoHubSocketBase {
      */
     private void closeSession() {
         Session session = this.session;
+        this.session = null;
         if (session != null) {
             session.close();
-            this.session = null;
         }
     }
 
@@ -175,19 +173,19 @@ public class NeoHubWebSocket extends NeoHubSocketBase {
         responsePending = true;
 
         IOException caughtException = null;
+        throttle();
         try {
             // send the request
             logger.debug("hub '{}' sending characters:{}", hubId, requestOuter.length());
             session.getRemote().sendString(requestOuter);
             logger.trace("hub '{}' sent:{}", hubId, requestOuter);
 
-            // sleep and loop until we get a response or the socket is closed
-            int sleepRemainingMilliseconds = config.socketTimeout * 1000;
+            // sleep and loop until we get a response, the socket is closed, or it times out
+            Instant timeout = Instant.now().plusSeconds(config.socketTimeout);
             while (responsePending) {
                 try {
                     Thread.sleep(SLEEP_MILLISECONDS);
-                    sleepRemainingMilliseconds = sleepRemainingMilliseconds - SLEEP_MILLISECONDS;
-                    if (sleepRemainingMilliseconds <= 0) {
+                    if (Instant.now().isAfter(timeout)) {
                         throw new IOException("Read timed out");
                     }
                 } catch (InterruptedException e) {
@@ -197,6 +195,9 @@ public class NeoHubWebSocket extends NeoHubSocketBase {
         } catch (IOException e) {
             caughtException = e;
         }
+
+        caughtException = caughtException != null ? caughtException
+                : this.session == null ? new IOException("WebSocket session closed") : null;
 
         logger.debug("hub '{}' received characters:{}", hubId, responseOuter.length());
         logger.trace("hub '{}' received:{}", hubId, responseOuter);
