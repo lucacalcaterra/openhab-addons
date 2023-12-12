@@ -51,12 +51,14 @@ public class ComponentFactory {
             Gson gson, TransformationServiceProvider transformationServiceProvider) throws ConfigurationException {
         ComponentConfiguration componentConfiguration = new ComponentConfiguration(thingUID, haID,
                 channelConfigurationJSON, gson, updateListener, tracker, scheduler)
-                        .transformationProvider(transformationServiceProvider);
+                .transformationProvider(transformationServiceProvider);
         switch (haID.component) {
             case "alarm_control_panel":
                 return new AlarmControlPanel(componentConfiguration);
             case "binary_sensor":
                 return new BinarySensor(componentConfiguration);
+            case "button":
+                return new Button(componentConfiguration);
             case "camera":
                 return new Camera(componentConfiguration);
             case "cover":
@@ -73,6 +75,8 @@ public class ComponentFactory {
                 return new Lock(componentConfiguration);
             case "number":
                 return new Number(componentConfiguration);
+            case "scene":
+                return new Scene(componentConfiguration);
             case "select":
                 return new Select(componentConfiguration);
             case "sensor":

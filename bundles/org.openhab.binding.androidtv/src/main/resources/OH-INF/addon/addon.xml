@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon:addon id="androidtv" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:addon="https://openhab.org/schemas/addon/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/addon/v1.0.0 https://openhab.org/schemas/addon-1.0.0.xsd">
+
+	<type>binding</type>
+	<name>AndroidTV Binding</name>
+	<description>This is the add-on for AndroidTV.</description>
+	<connection>local</connection>
+
+	<discovery-methods>
+		<discovery-method>
+			<service-type>mdns</service-type>
+			<mdns-service-type>_androidtvremote2._tcp.local.</mdns-service-type>
+		</discovery-method>
+		<discovery-method>
+			<service-type>mdns</service-type>
+			<mdns-service-type>_nv_shield_remote._tcp.local.</mdns-service-type>
+		</discovery-method>
+	</discovery-methods>
+
+</addon:addon>

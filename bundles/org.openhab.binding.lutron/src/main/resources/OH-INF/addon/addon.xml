@@ -7,5 +7,13 @@
 	<name>Lutron Binding</name>
 	<description>The Lutron binding interfaces with Lutron lighting control and home automation systems such as RadioRA,
 		RadioRA 2, HomeWorks, HomeWorks QS, RA2 Select, Caseta, and GRAFIK Eye.</description>
+	<connection>local</connection>
+
+	<discovery-methods>
+		<discovery-method>
+			<service-type>mdns</service-type>
+			<mdns-service-type>_lutron._tcp.local.</mdns-service-type>
+		</discovery-method>
+	</discovery-methods>
 
 </addon:addon>

@@ -13,7 +13,7 @@
 package org.openhab.binding.hue.internal.handler;
 
 import static org.openhab.binding.hue.internal.HueBindingConstants.*;
-import static org.openhab.binding.hue.internal.dto.FullSensor.*;
+import static org.openhab.binding.hue.internal.api.dto.clip1.FullSensor.*;
 import static org.openhab.core.thing.Thing.*;
 
 import java.time.LocalDateTime;
@@ -27,9 +27,9 @@ import java.util.Objects;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.binding.hue.internal.dto.FullSensor;
-import org.openhab.binding.hue.internal.dto.SensorConfigUpdate;
-import org.openhab.binding.hue.internal.dto.StateUpdate;
+import org.openhab.binding.hue.internal.api.dto.clip1.FullSensor;
+import org.openhab.binding.hue.internal.api.dto.clip1.SensorConfigUpdate;
+import org.openhab.binding.hue.internal.api.dto.clip1.StateUpdate;
 import org.openhab.core.config.core.Configuration;
 import org.openhab.core.library.types.DateTimeType;
 import org.openhab.core.library.types.DecimalType;
@@ -118,7 +118,7 @@ public abstract class HueSensorHandler extends BaseThingHandler implements Senso
                 properties.put(PROPERTY_MODEL_ID, modelId);
             }
             properties.put(PROPERTY_VENDOR, fullSensor.getManufacturerName());
-            properties.put(PRODUCT_NAME, fullSensor.getProductName());
+            properties.put(PROPERTY_PRODUCT_NAME, fullSensor.getProductName());
             String uniqueID = fullSensor.getUniqueID();
             if (uniqueID != null) {
                 properties.put(UNIQUE_ID, uniqueID);
@@ -320,7 +320,6 @@ public abstract class HueSensorHandler extends BaseThingHandler implements Senso
      * Handles the sensor change. Implementation should also update sensor-specific configuration that changed since the
      * last update.
      *
-     * @param bridge the bridge
      * @param sensor the sensor
      * @param config the configuration in which to update the config states of the sensor
      */
