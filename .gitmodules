@@ -1,0 +1,3 @@
+[submodule "bundles/org.openhab.binding.mqtt.frigatesvr"]
+	path = bundles/org.openhab.binding.mqtt.frigatesvr
+	url = https://github.com/jgow/org.openhab.binding.mqtt.frigatesvr.git
