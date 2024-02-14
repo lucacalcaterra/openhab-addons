@@ -39,7 +39,7 @@
 			<parameter name="pollingInterval" type="integer" required="true">
 				<label>Polling Interval</label>
 				<description>Time interval how often poll data from MELCloud</description>
-				<default>60</default>
+				<default>3600</default>
 			</parameter>
 		</config-description>
 	</thing-type>
