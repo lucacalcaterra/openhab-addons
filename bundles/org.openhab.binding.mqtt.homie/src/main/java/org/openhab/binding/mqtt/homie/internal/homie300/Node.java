@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -29,7 +29,7 @@ import org.openhab.core.io.transport.mqtt.MqttBrokerConnection;
 import org.openhab.core.thing.ChannelGroupUID;
 import org.openhab.core.thing.ThingUID;
 import org.openhab.core.thing.type.ChannelDefinition;
-import org.openhab.core.thing.type.ChannelDefinitionBuilder;
+import org.openhab.core.thing.type.ChannelGroupDefinition;
 import org.openhab.core.thing.type.ChannelGroupType;
 import org.openhab.core.thing.type.ChannelGroupTypeBuilder;
 import org.openhab.core.thing.type.ChannelGroupTypeUID;
@@ -101,6 +101,7 @@ public class Node implements AbstractMqttAttributeClass.AttributeChanged {
 
     public void nodeRestoredFromConfig() {
         initialized = true;
+        attributes.name = nodeID;
     }
 
     /**
@@ -118,10 +119,13 @@ public class Node implements AbstractMqttAttributeClass.AttributeChanged {
      */
     public ChannelGroupType type() {
         final List<ChannelDefinition> channelDefinitions = properties.stream()
-                .map(c -> new ChannelDefinitionBuilder(c.propertyID, c.channelTypeUID).build())
-                .collect(Collectors.toList());
+                .map(p -> Objects.requireNonNull(p.getChannelDefinition())).collect(Collectors.toList());
         return ChannelGroupTypeBuilder.instance(channelGroupTypeUID, attributes.name)
                 .withChannelDefinitions(channelDefinitions).build();
+    }
+
+    public ChannelGroupDefinition getChannelGroupDefinition() {
+        return new ChannelGroupDefinition(channelGroupUID.getId(), channelGroupTypeUID, attributes.name, null);
     }
 
     /**

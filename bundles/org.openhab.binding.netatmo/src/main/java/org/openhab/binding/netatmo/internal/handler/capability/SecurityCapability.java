@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -32,7 +33,6 @@ import org.openhab.binding.netatmo.internal.api.dto.HomeDataPerson;
 import org.openhab.binding.netatmo.internal.api.dto.HomeEvent;
 import org.openhab.binding.netatmo.internal.api.dto.HomeStatusModule;
 import org.openhab.binding.netatmo.internal.api.dto.HomeStatusPerson;
-import org.openhab.binding.netatmo.internal.api.dto.NAHomeStatus;
 import org.openhab.binding.netatmo.internal.api.dto.NAHomeStatus.HomeStatus;
 import org.openhab.binding.netatmo.internal.api.dto.NAObject;
 import org.openhab.binding.netatmo.internal.config.HomeConfiguration;
@@ -66,7 +66,7 @@ class SecurityCapability extends RestCapability<SecurityApi> {
     public void initialize() {
         super.initialize();
         freshestEventTime = null;
-        securityId = handler.getConfiguration().as(HomeConfiguration.class).getIdForArea(FeatureArea.SECURITY);
+        securityId = handler.getThingConfigAs(HomeConfiguration.class).getIdForArea(FeatureArea.SECURITY);
     }
 
     @Override
@@ -88,21 +88,19 @@ class SecurityCapability extends RestCapability<SecurityApi> {
     }
 
     @Override
-    protected void updateHomeStatus(HomeStatus homeStatus) {
-        if (homeStatus instanceof NAHomeStatus.Security securityStatus) {
-            NAObjectMap<HomeStatusPerson> persons = securityStatus.getPersons();
-            NAObjectMap<HomeStatusModule> modules = securityStatus.getModules();
-            handler.getActiveChildren(FeatureArea.SECURITY).forEach(childHandler -> {
-                String childId = childHandler.getId();
-                persons.getOpt(childId).ifPresentOrElse(personData -> childHandler.setNewData(personData), () -> {
-                    modules.getOpt(childId).ifPresent(childData -> {
-                        childHandler.setNewData(childData);
-                        modules.values().stream().filter(module -> childId.equals(module.getBridge()))
-                                .forEach(bridgedModule -> childHandler.setNewData(bridgedModule));
-                    });
+    protected void updateHomeStatus(HomeStatus securityStatus) {
+        NAObjectMap<HomeStatusPerson> persons = securityStatus.getPersons();
+        NAObjectMap<HomeStatusModule> modules = securityStatus.getModules();
+        handler.getActiveChildren(FeatureArea.SECURITY).forEach(childHandler -> {
+            String childId = childHandler.getId();
+            persons.getOpt(childId).ifPresentOrElse(personData -> childHandler.setNewData(personData), () -> {
+                modules.getOpt(childId).ifPresent(childData -> {
+                    childHandler.setNewData(childData);
+                    modules.values().stream().filter(module -> childId.equals(module.getBridge()))
+                            .forEach(bridgedModule -> childHandler.setNewData(bridgedModule));
                 });
             });
-        }
+        });
     }
 
     @Override
@@ -178,25 +176,25 @@ class SecurityCapability extends RestCapability<SecurityApi> {
     }
 
     private Collection<HomeEvent> requestDeviceEvents(String moduleId, String deviceType) {
-        return getApi().map(api -> {
+        return Objects.requireNonNull(getApi().map(api -> {
             try {
                 return api.getDeviceEvents(securityId, moduleId, deviceType);
             } catch (NetatmoException e) {
                 logger.warn("Error retrieving last events of camera '{}' : {}", moduleId, e.getMessage());
                 return null;
             }
-        }).orElse(List.of());
+        }).orElse(List.of()));
     }
 
     private Collection<HomeEvent> requestPersonEvents(String personId) {
-        return getApi().map(api -> {
+        return Objects.requireNonNull(getApi().map(api -> {
             try {
                 return api.getPersonEvents(securityId, personId);
             } catch (NetatmoException e) {
                 logger.warn("Error retrieving last events of person '{}' : {}", personId, e.getMessage());
                 return null;
             }
-        }).orElse(List.of());
+        }).orElse(List.of()));
     }
 
     public void setPersonAway(String personId, boolean away) {

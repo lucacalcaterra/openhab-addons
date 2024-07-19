@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -17,7 +17,9 @@ import java.lang.reflect.Type;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.boschshc.internal.devices.bridge.dto.DeviceServiceData;
+import org.openhab.binding.boschshc.internal.devices.bridge.dto.Message;
 import org.openhab.binding.boschshc.internal.devices.bridge.dto.Scenario;
+import org.openhab.binding.boschshc.internal.devices.bridge.dto.UserDefinedState;
 import org.openhab.binding.boschshc.internal.services.dto.BoschSHCServiceState;
 
 import com.google.gson.JsonDeserializationContext;
@@ -39,7 +41,6 @@ public class BoschServiceDataDeserializer implements JsonDeserializer<BoschSHCSe
     @Override
     public BoschSHCServiceState deserialize(JsonElement jsonElement, Type type,
             JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         JsonElement dataType = jsonObject.get("@type");
         switch (dataType.getAsString()) {
@@ -57,6 +58,16 @@ public class BoschServiceDataDeserializer implements JsonDeserializer<BoschSHCSe
                 scenario.name = jsonObject.get("name").getAsString();
                 scenario.lastTimeTriggered = jsonObject.get("lastTimeTriggered").getAsString();
                 return scenario;
+            }
+            case "userDefinedState" -> {
+                var state = new UserDefinedState();
+                state.setId(jsonObject.get("id").getAsString());
+                state.setName(jsonObject.get("name").getAsString());
+                state.setState(jsonObject.get("state").getAsBoolean());
+                return state;
+            }
+            case "message" -> {
+                return GsonUtils.DEFAULT_GSON_INSTANCE.fromJson(jsonElement, Message.class);
             }
             default -> {
                 return new BoschSHCServiceState(dataType.getAsString());

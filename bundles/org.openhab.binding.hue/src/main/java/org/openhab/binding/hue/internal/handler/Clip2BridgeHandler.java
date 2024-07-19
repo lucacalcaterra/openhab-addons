@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -366,13 +366,11 @@ public class Clip2BridgeHandler extends BaseBridgeHandler {
         }
 
         ThingUID legacyBridgeUID = legacyBridge.get().getUID();
-        return thingRegistry.getAll().stream() //
+        return thingRegistry.getAll().stream()
                 .filter(thing -> legacyBridgeUID.equals(thing.getBridgeUID())
-                        && V1_THING_TYPE_UIDS.contains(thing.getThingTypeUID())) //
-                .filter(thing -> {
-                    Object id = thing.getConfiguration().get(config);
-                    return (id instanceof String) && targetIdV1.endsWith("/" + (String) id);
-                }).findFirst();
+                        && V1_THING_TYPE_UIDS.contains(thing.getThingTypeUID())
+                        && thing.getConfiguration().get(config) instanceof String id && targetIdV1.endsWith("/" + id))
+                .findFirst();
     }
 
     /**
